@@ -13,7 +13,7 @@ services:
         HTTPS_PROXY: ${HTTPS_PROXY:-}
         no_proxy: ${no_proxy:-}
         NO_PROXY: ${NO_PROXY:-}
-    image: django_appointment_web:latest
+    image: ${APP_IMAGE:-crpi-6symead8lcrbtpwr.cn-guangzhou.personal.cr.aliyuncs.com/xiaotong666/django-appointment:latest}
     restart: unless-stopped
     ports:
       - "8000:8000"
@@ -22,6 +22,8 @@ services:
       SECRET_KEY: ${SECRET_KEY:-django-insecure-change-me-in-production}
       DEBUG: ${DEBUG:-False}
       ALLOWED_HOSTS: ${ALLOWED_HOSTS:-*}
+      CSRF_TRUSTED_ORIGINS: ${CSRF_TRUSTED_ORIGINS:-}
+      USE_X_FORWARDED_HOST: ${USE_X_FORWARDED_HOST:-True}
       TZ: Asia/Shanghai
       SQLITE_PATH: /app/data/db.sqlite3
       STATIC_ROOT: /app/staticfiles

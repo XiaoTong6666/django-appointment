@@ -1,23 +1,27 @@
-FROM python:3.10-slim
+FROM python:3.13-slim
 
-# Set the working directory in the container
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    TZ=Asia/Shanghai
+
 WORKDIR /app
 
-# Copy the current directory contents into the container at /app
-COPY . /app
+ARG http_proxy
+ARG https_proxy
+ARG HTTP_PROXY
+ARG HTTPS_PROXY
+ARG no_proxy
+ARG NO_PROXY
 
-# Install any needed packages specified in requirements.txt
+COPY requirements.txt /app/
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Conditionally install django-q2
-ARG USE_DJANGO_Q=False
-RUN if [ "$USE_DJANGO_Q" = True ] ; then pip install django-q2 ; fi
+COPY . /app/
+RUN chmod +x /app/entrypoint.sh \
+    && mkdir -p /app/data /app/staticfiles
 
-# Labels
-MAINTAINER Adams Pierre David <adamspd.developer@gmail.com>
-LABEL version="1.0"
-LABEL description="Docker Image to test django-appointment package in a container."
+EXPOSE 8000
 
-# Define environment variable
-ENV NAME World
-
+ENTRYPOINT ["/app/entrypoint.sh"]
+CMD ["gunicorn", "appointments.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "3", "--timeout", "120"]

@@ -1,41 +1,56 @@
 services:
-  web: &web
+  web:
     build:
       context: .
       dockerfile: Dockerfile
       args:
-        USE_DJANGO_Q: "True"
-    image: django_appointment_web_local
-    command: python manage.py runserver 0.0.0.0:8000
-    volumes:
-      - .:/app
+        - http_proxy
+        - https_proxy
+        - HTTP_PROXY
+        - HTTPS_PROXY
+        - no_proxy
+        - NO_PROXY
+    image: django_appointment_web:latest
+    restart: unless-stopped
     ports:
       - "8000:8000"
-    env_file:
-      - .env
-
-  qcluster:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      args:
-        USE_DJANGO_Q: "True"
-    image: django_appointment_qcluster_local
-    command: python manage.py qcluster
-    depends_on:
-      - web
+    environment:
+      DJANGO_SETTINGS_MODULE: appointments.settings
+      SECRET_KEY: ${SECRET_KEY:-django-insecure-change-me-in-production}
+      DEBUG: ${DEBUG:-False}
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS:-*}
+      TZ: Asia/Shanghai
+      SQLITE_PATH: /app/data/db.sqlite3
+      STATIC_ROOT: /app/staticfiles
+      APPOINTMENT_REDIS_HOST: redis
+      APPOINTMENT_REDIS_PORT: 6379
+      APPOINTMENT_WEB_VERIFICATION_ONLY: ${APPOINTMENT_WEB_VERIFICATION_ONLY:-True}
+      USE_DJANGO_Q: ${USE_DJANGO_Q:-False}
+      USE_DJANGO_Q_FOR_EMAILS: ${USE_DJANGO_Q_FOR_EMAILS:-False}
+      http_proxy:
+      https_proxy:
+      HTTP_PROXY:
+      HTTPS_PROXY:
+      no_proxy:
+      NO_PROXY:
     volumes:
-      - .:/app
-    env_file:
-      - .env
+      - app-data:/app/data
+      - static-data:/app/staticfiles
+    depends_on:
+      redis:
+        condition: service_started
 
   redis:
-    image: redis:alpine
-    ports:
-      - "6379:6379"
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --appendonly yes
     volumes:
       - redis-data:/data
 
 volumes:
+  app-data:
+    driver: local
+  static-data:
+    driver: local
   redis-data:
     driver: local

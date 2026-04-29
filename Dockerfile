@@ -1,4 +1,5 @@
-FROM python:3.13-slim
+ARG PYTHON_IMAGE=swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/library/python:3.12-slim
+FROM ${PYTHON_IMAGE}
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
@@ -13,9 +14,12 @@ ARG HTTP_PROXY
 ARG HTTPS_PROXY
 ARG no_proxy
 ARG NO_PROXY
+ARG PIP_INDEX_URL=https://mirrors.aliyun.com/pypi/simple
+ARG PIP_FALLBACK_INDEX_URL=https://pypi.org/simple
 
 COPY requirements.txt /app/
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -i ${PIP_INDEX_URL} --trusted-host mirrors.aliyun.com -r requirements.txt \
+    || pip install --no-cache-dir -i ${PIP_FALLBACK_INDEX_URL} -r requirements.txt
 
 COPY . /app/
 RUN chmod +x /app/entrypoint.sh \

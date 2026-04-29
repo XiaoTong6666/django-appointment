@@ -4,12 +4,15 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        - http_proxy
-        - https_proxy
-        - HTTP_PROXY
-        - HTTPS_PROXY
-        - no_proxy
-        - NO_PROXY
+        PYTHON_IMAGE: ${PYTHON_IMAGE:-swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/library/python:3.11-slim}
+        PIP_INDEX_URL: ${PIP_INDEX_URL:-https://mirrors.aliyun.com/pypi/simple}
+        PIP_FALLBACK_INDEX_URL: ${PIP_FALLBACK_INDEX_URL:-https://pypi.org/simple}
+        http_proxy: ${http_proxy:-}
+        https_proxy: ${https_proxy:-}
+        HTTP_PROXY: ${HTTP_PROXY:-}
+        HTTPS_PROXY: ${HTTPS_PROXY:-}
+        no_proxy: ${no_proxy:-}
+        NO_PROXY: ${NO_PROXY:-}
     image: django_appointment_web:latest
     restart: unless-stopped
     ports:

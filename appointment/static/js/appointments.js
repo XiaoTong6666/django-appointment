@@ -190,7 +190,11 @@ function getDateWithoutTime(dt) {
 }
 
 function convertTo24Hour(time12h) {
-    const [time, modifier] = time12h.split(' ');
+    const normalized = time12h.replace('上午', 'AM').replace('下午', 'PM').trim();
+    const parts = normalized.split(/\s+/);
+    const firstIsPeriod = ['AM', 'PM'].includes(parts[0].toUpperCase());
+    const modifier = firstIsPeriod ? parts[0] : (parts[1] || '');
+    const time = firstIsPeriod ? parts[1] : parts[0];
     let [hours, minutes] = time.split(':');
 
     if (hours === '12') {
@@ -287,8 +291,8 @@ function getAvailableSlots(selectedDate, staffId = null) {
                     if (errorMessageContainer.find('.djangoAppt_no-availability-text').length === 0) {
                         errorMessageContainer.append(`<p class="djangoAppt_no-availability-text">${data.message}</p>`);
                     }
-                    // Check if the returned message is 'No availability'
-                    if (data.message.toLowerCase() === 'no availability') {
+                    // Show the next-slot action when the server reports no available times.
+                    if (data.message === '暂无可预约时间' || data.message.toLowerCase() === 'no availability') {
                         if (slotContainer.find('.djangoAppt_btn-request-next-slot').length === 0) {
                             slotContainer.append(`<button class="btn btn-danger djangoAppt_btn-request-next-slot" data-service-id="${serviceId}">` + requestNonAvailableSlotBtnTxt + `</button>`);
                         }

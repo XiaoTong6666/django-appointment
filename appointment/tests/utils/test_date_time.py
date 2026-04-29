@@ -54,8 +54,7 @@ class Convert12HourTo24HourTimeTests(TestCase):
             convert_12_hour_time_to_24_hour_time({"time": "12:00 AM"})
         with self.assertRaises(ValueError):
             convert_12_hour_time_to_24_hour_time("25:00 AM")
-        with self.assertRaises(ValueError):
-            convert_12_hour_time_to_24_hour_time("01:00")
+        self.assertEqual(convert_12_hour_time_to_24_hour_time("01:00"), "01:00:00")
         with self.assertRaises(ValueError):
             convert_12_hour_time_to_24_hour_time("Random String")
         with self.assertRaises(ValueError):
@@ -65,21 +64,21 @@ class Convert12HourTo24HourTimeTests(TestCase):
 class Convert24HourTimeTo12HourTimeTests(TestCase):
 
     def test_valid_24_hour_strings(self):
-        self.assertEqual(convert_24_hour_time_to_12_hour_time("13:00"), "01:00 PM")
-        self.assertEqual(convert_24_hour_time_to_12_hour_time("00:00"), "12:00 AM")
-        self.assertEqual(convert_24_hour_time_to_12_hour_time("23:59"), "11:59 PM")
-        self.assertEqual(convert_24_hour_time_to_12_hour_time("12:00"), "12:00 PM")
-        self.assertEqual(convert_24_hour_time_to_12_hour_time("01:00"), "01:00 AM")
+        self.assertEqual(convert_24_hour_time_to_12_hour_time("13:00"), "下午 01:00")
+        self.assertEqual(convert_24_hour_time_to_12_hour_time("00:00"), "上午 12:00")
+        self.assertEqual(convert_24_hour_time_to_12_hour_time("23:59"), "下午 11:59")
+        self.assertEqual(convert_24_hour_time_to_12_hour_time("12:00"), "下午 12:00")
+        self.assertEqual(convert_24_hour_time_to_12_hour_time("01:00"), "上午 01:00")
 
     def test_valid_24_hour_with_seconds(self):
-        self.assertEqual(convert_24_hour_time_to_12_hour_time("13:00:01"), "01:00:01 PM")
-        self.assertEqual(convert_24_hour_time_to_12_hour_time("00:00:59"), "12:00:59 AM")
+        self.assertEqual(convert_24_hour_time_to_12_hour_time("13:00:01"), "下午 01:00:01")
+        self.assertEqual(convert_24_hour_time_to_12_hour_time("00:00:59"), "上午 12:00:59")
 
     def test_time_object_input(self):
         time_input = datetime.time(13, 15)
-        self.assertEqual(convert_24_hour_time_to_12_hour_time(time_input), "01:15 PM")
+        self.assertEqual(convert_24_hour_time_to_12_hour_time(time_input), "下午 01:15")
         time_input = datetime.time(0, 0)
-        self.assertEqual(convert_24_hour_time_to_12_hour_time(time_input), "12:00 AM")
+        self.assertEqual(convert_24_hour_time_to_12_hour_time(time_input), "上午 12:00")
 
     def test_invalid_time_strings(self):
         with self.assertRaises(ValueError):
@@ -98,46 +97,46 @@ class Convert24HourTimeTo12HourTimeTests(TestCase):
             convert_24_hour_time_to_12_hour_time("24:00")
 
     def test_edge_cases(self):
-        self.assertEqual(convert_24_hour_time_to_12_hour_time("12:00"), "12:00 PM")
-        self.assertEqual(convert_24_hour_time_to_12_hour_time("00:00"), "12:00 AM")
-        self.assertEqual(convert_24_hour_time_to_12_hour_time("11:59"), "11:59 AM")
-        self.assertEqual(convert_24_hour_time_to_12_hour_time("23:59"), "11:59 PM")
+        self.assertEqual(convert_24_hour_time_to_12_hour_time("12:00"), "下午 12:00")
+        self.assertEqual(convert_24_hour_time_to_12_hour_time("00:00"), "上午 12:00")
+        self.assertEqual(convert_24_hour_time_to_12_hour_time("11:59"), "上午 11:59")
+        self.assertEqual(convert_24_hour_time_to_12_hour_time("23:59"), "下午 11:59")
 
 
 class ConvertMinutesInHumanReadableFormatTests(TestCase):
     def test_basic_conversions(self):
         """Test basic conversions"""
-        self.assertEqual(convert_minutes_in_human_readable_format(30), "30 minutes")
-        self.assertEqual(convert_minutes_in_human_readable_format(90), "1 hour and 30 minutes")
+        self.assertEqual(convert_minutes_in_human_readable_format(30), "30 分钟")
+        self.assertEqual(convert_minutes_in_human_readable_format(90), "1 小时 30 分钟")
 
     def test_edge_cases(self):
         """Test edgy cases"""
-        self.assertEqual(convert_minutes_in_human_readable_format(59), "59 minutes")
-        self.assertEqual(convert_minutes_in_human_readable_format(60), "1 hour")
-        self.assertEqual(convert_minutes_in_human_readable_format(1439), "23 hours and 59 minutes")
+        self.assertEqual(convert_minutes_in_human_readable_format(59), "59 分钟")
+        self.assertEqual(convert_minutes_in_human_readable_format(60), "1 小时")
+        self.assertEqual(convert_minutes_in_human_readable_format(1439), "23 小时 59 分钟")
         # '1440' minutes is the total number of minutes in a day, hence it should convert to "1 day".
-        self.assertEqual(convert_minutes_in_human_readable_format(1440), "1 day")
+        self.assertEqual(convert_minutes_in_human_readable_format(1440), "1 天")
 
     def test_valid_combinations(self):
         """Test various combinations"""
-        self.assertEqual(convert_minutes_in_human_readable_format(1441), "1 day and 1 minute")
-        self.assertEqual(convert_minutes_in_human_readable_format(1500), "1 day and 1 hour")
-        self.assertEqual(convert_minutes_in_human_readable_format(1560), "1 day and 2 hours")
-        self.assertEqual(convert_minutes_in_human_readable_format(1501), "1 day, 1 hour and 1 minute")
-        self.assertEqual(convert_minutes_in_human_readable_format(1562), "1 day, 2 hours and 2 minutes")
-        self.assertEqual(convert_minutes_in_human_readable_format(808), "13 hours and 28 minutes")
+        self.assertEqual(convert_minutes_in_human_readable_format(1441), "1 天 1 分钟")
+        self.assertEqual(convert_minutes_in_human_readable_format(1500), "1 天 1 小时")
+        self.assertEqual(convert_minutes_in_human_readable_format(1560), "1 天 2 小时")
+        self.assertEqual(convert_minutes_in_human_readable_format(1501), "1 天 1 小时 1 分钟")
+        self.assertEqual(convert_minutes_in_human_readable_format(1562), "1 天 2 小时 2 分钟")
+        self.assertEqual(convert_minutes_in_human_readable_format(808), "13 小时 28 分钟")
 
     def test_non_positive_values(self):
         """Test that non-positive values are handled correctly"""
-        self.assertEqual(convert_minutes_in_human_readable_format(0), "Not set.")
+        self.assertEqual(convert_minutes_in_human_readable_format(0), "未设置")
         # Expectation for negative values might depend on desired behavior, just an example below
         with self.assertRaises(ValueError):
             convert_minutes_in_human_readable_format(-5)
 
     def test_float_values(self):
         """Test float values which should be correctly rounded down"""
-        self.assertEqual(convert_minutes_in_human_readable_format(2.5), "2 minutes")
-        self.assertEqual(convert_minutes_in_human_readable_format(2.9), "2 minutes")
+        self.assertEqual(convert_minutes_in_human_readable_format(2.5), "2 分钟")
+        self.assertEqual(convert_minutes_in_human_readable_format(2.9), "2 分钟")
 
     def test_invalid_inputs(self):
         """Test invalid inputs which should raise an error"""
@@ -196,6 +195,8 @@ class ConvertStrToTimeTests(TestCase):
         self.assertEqual(convert_str_to_time("10:00 AM"), datetime.time(10, 0))
         self.assertEqual(convert_str_to_time("12:00 PM"), datetime.time(12, 0))
         self.assertEqual(convert_str_to_time("01:30 PM"), datetime.time(13, 30))
+        self.assertEqual(convert_str_to_time("上午 10:00"), datetime.time(10, 0))
+        self.assertEqual(convert_str_to_time("下午 01:30"), datetime.time(13, 30))
 
     def test_24h_format_str_to_time(self):
         """Test if a 24-hour time format string converts correctly."""
@@ -373,11 +374,11 @@ class GeneralDateTimeTests(TestCase):
         """Test get_current_year function"""
         self.assertEqual(get_current_year(), datetime.datetime.now().year)
 
-    def test_get_current_year_mocked(self):
+    @patch('appointment.utils.date_time.timezone.localdate')
+    def test_get_current_year_mocked(self, mock_localdate):
         """Test get_current_year function with a mocked year."""
-        with patch('appointment.utils.date_time.datetime.datetime') as mock_date:
-            mock_date.now.return_value.year = 1999  # Setting year attribute of the mock object
-            self.assertEqual(get_current_year(), 1999)
+        mock_localdate.return_value = datetime.date(1999, 1, 1)
+        self.assertEqual(get_current_year(), 1999)
 
     def test_get_weekday_num(self):
         """Test get_weekday_num function with valid input"""

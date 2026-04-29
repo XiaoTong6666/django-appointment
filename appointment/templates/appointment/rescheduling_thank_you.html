@@ -52,18 +52,18 @@
     </style>
 {% endblock %}
 {% block title %}
-    {% trans "Rescheduling Successful" %}
+    改约提交成功
 {% endblock %}
 {% block description %}
-    {% trans "Your appointment rescheduling was successful. Please confirm via email." %}
+    你的改约申请已提交，请按页面提示完成确认。
 {% endblock %}
 {% block body %}
     <div class="container content-body-apd">
         <div class="main-content">
             <div class="confirmation-message">
-                <h1>{% trans "Rescheduling Successful" %}</h1>
-                <p>{% trans "Your appointment rescheduling request has been successfully submitted. Please check your email and click on the confirmation link to finalize the rescheduling process." %}</p>
-                <a href="/">{% trans "Go to Homepage" %}</a>
+                <h1>改约提交成功</h1>
+                <p>你的改约申请已成功提交。如已配置邮箱，请查看邮件并点击确认链接完成改约。</p>
+                <a href="/">返回首页</a>
             </div>
             {% if messages %}
                 {% for message in messages %}

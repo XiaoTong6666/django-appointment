@@ -21,7 +21,7 @@ def require_user_authenticated(func):
     @wraps(func)
     def wrapper(request, *args, **kwargs):
         if not request.user.is_authenticated:
-            return json_response("Not authorized.", status=401, success=False, error_code=ErrorCode.NOT_AUTHORIZED)
+            return json_response("未登录或没有权限。", status=401, success=False, error_code=ErrorCode.NOT_AUTHORIZED)
         return func(request, *args, **kwargs)
 
     return wrapper
@@ -35,7 +35,7 @@ def require_staff_or_superuser(func):
     @wraps(func)
     def wrapper(request, *args, **kwargs):
         if not (request.user.is_staff or request.user.is_superuser):
-            return json_response("Not authorized.", status=403, success=False, error_code=ErrorCode.NOT_AUTHORIZED)
+            return json_response("未登录或没有权限。", status=403, success=False, error_code=ErrorCode.NOT_AUTHORIZED)
         return func(request, *args, **kwargs)
 
     return wrapper
@@ -49,7 +49,7 @@ def require_superuser(func):
     @wraps(func)
     def wrapper(request, *args, **kwargs):
         if not request.user.is_superuser:
-            return json_response("Not authorized.", status=403, success=False, error_code=ErrorCode.NOT_AUTHORIZED)
+            return json_response("未登录或没有权限。", status=403, success=False, error_code=ErrorCode.NOT_AUTHORIZED)
         return func(request, *args, **kwargs)
 
     return wrapper

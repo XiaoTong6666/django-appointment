@@ -11,6 +11,7 @@ import datetime
 from django.conf import settings
 from django.template.exceptions import TemplateDoesNotExist
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
 from django.utils.translation import gettext as _
@@ -85,7 +86,7 @@ def send_thank_you_email(ar: AppointmentRequest, user, request, email: str, appo
     email_context = {
         'first_name': user.first_name,
         'message_1': get_thank_you_message(ar),
-        'current_year': datetime.datetime.now().year,
+        'current_year': timezone.localdate().year,
         'company': get_website_name(),
         'more_details': appointment_details,
         'account_details': account_details,
@@ -139,7 +140,7 @@ def send_reset_link_to_staff_member(user, request, email: str, account_details=N
         if template_path:
             email_context = {
                 'first_name': user.first_name,
-                'current_year': datetime.datetime.now().year,
+                'current_year': timezone.localdate().year,
                 'company': website_name,
                 'activation_link': set_passwd_link,
                 'account_details': account_details if account_details else _("No additional details provided."),
@@ -175,7 +176,7 @@ def send_reset_link_to_staff_member(user, request, email: str, account_details=N
             {company}
             """).format(
             first_name=user.first_name,
-            current_year=datetime.datetime.now().year,
+            current_year=timezone.localdate().year,
             company=website_name,
             activation_link=set_passwd_link,
             login_instruction=login_instruction,
@@ -293,8 +294,8 @@ def send_verification_email(user, email: str):
             raise TemplateDoesNotExist("verification.html")
     except TemplateDoesNotExist:
         # Original plain text behavior
-        message = _("Your verification code is {code}.").format(code=code)
-        send_email(recipient_list=[email], subject=_("Email Verification"), message=message)
+        message = f"你的验证码是 {code}。"
+        send_email(recipient_list=[email], subject="邮箱验证码", message=message)
 
 
 def send_reschedule_confirmation_email(request, reschedule_history, appointment_request, first_name: str, email: str):

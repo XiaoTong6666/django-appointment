@@ -18,7 +18,7 @@
                 <h1 class="page-title">
                     {% if page_header %}{{ page_header }}{% else %}{{ service.name }}{% endif %} </h1>
                 <small class="page-description">
-                    {% trans "Check out our availability and book the date and time that works for you" %}
+                    查看可预约时间，选择适合你的日期和时间
                 </small>
                 <hr>
 
@@ -26,10 +26,10 @@
                     <div class="djangoAppt_appointment-calendar">
                         <div class="djangoAppt_appointment-calendar-title-timezone">
                             <div class="djangoAppt_title">
-                                {% trans "Select a date and time" %}
+                                选择日期和时间
                             </div>
                             <div class="djangoAppt_timezone-details">
-                                {% trans "Timezone" %}:&nbsp;{{ timezoneTxt }}
+                                时区：&nbsp;{{ timezoneTxt }}
                             </div>
                         </div>
                         <hr class="djangoAppt_second-part">
@@ -49,7 +49,7 @@
                         </div>
                         {% if rescheduled_date %}
                             <div class="form-group" style="margin-top: 10px">
-                                <label for="reason_for_rescheduling">{% trans "Reason for rescheduling" %}:</label>
+                                <label for="reason_for_rescheduling">改约原因：</label>
                                 <textarea name="reason_for_rescheduling" id="reason_for_rescheduling"
                                           class="form-control" rows="1" required></textarea>
                             </div>
@@ -64,7 +64,7 @@
                                 <select name="staff_member" id="staff_id">
                                     {% if not staff_member %}
                                         <option value="none"
-                                                selected>{% trans 'Please select a staff member' %}</option>
+                                                selected>请选择工作人员</option>
                                     {% endif %}
                                     {% for sf in all_staff_members %}
                                         <option value="{{ sf.id }}"
@@ -73,7 +73,7 @@
                                 </select>
                             </div>
 
-                            <div>{% trans "Service Details" %}</div>
+                            <div>服务详情</div>
                             <hr class="djangoAppt_second-part">
                             <div class="djangoAppt_service-description-content">
                                 <p class="djangoAppt_item-name">{{ service.name }}</p>
@@ -82,7 +82,7 @@
                                 <p>{{ service.get_price_text }}</p>
                                 <button type="submit"
                                         class="btn btn-primary btn-submit-appointment"
-                                        disabled>{% trans 'Next' %}</button>
+                                        disabled>下一步</button>
                             </div>
                         </form>
                     </div>
@@ -122,15 +122,15 @@
         const appointmentRescheduleURL = "{% url 'appointment:reschedule_appointment_submit' %}";
     </script>
     <script>
-        const requestNonAvailableSlotBtnTxt = "{% trans 'Request next available slot' %}";
-        const noStaffMemberSelectedTxt = "{% trans 'No staff member selected.' %}";
-        const selectTimeSlotWarningTxt = "{% trans 'Please select a time slot before submitting the appointment request.' %}";
-        const dateInPastErrorTxt = "{% trans 'Date is in the past.' %}";
-        const selectDateAndTimeAlertTxt = "{% trans 'Please select a date and time' %}";
-        const todayBtnText = "{% trans 'Today' %}";
-        const nextMonthBtnText = "{% trans 'Next month' %}";
-        const previousMonthBtnText = "{% trans 'Previous month' %}";
-        const nextAvailableDateTxt = "{% trans 'Next available date' %}";
+        const requestNonAvailableSlotBtnTxt = "请求下一个可预约时间";
+        const noStaffMemberSelectedTxt = "未选择工作人员。";
+        const selectTimeSlotWarningTxt = "提交预约前请选择一个时间段。";
+        const dateInPastErrorTxt = "日期已过期。";
+        const selectDateAndTimeAlertTxt = "请选择日期和时间";
+        const todayBtnText = "今天";
+        const nextMonthBtnText = "下个月";
+        const previousMonthBtnText = "上个月";
+        const nextAvailableDateTxt = "下一个可预约日期";
     </script>
     <script src="{% static 'js/appointments.js' %}"></script>
     <script src="{% static 'js/js-utils.js' %}"></script>

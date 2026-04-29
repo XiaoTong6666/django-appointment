@@ -95,25 +95,26 @@ DATABASES = {
 
 AUTH_PASSWORD_VALIDATORS = [
     {
-        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
+        "NAME": "appointment.password_validators.ChineseUserAttributeSimilarityValidator",
     },
     {
-        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+        "NAME": "appointment.password_validators.ChineseMinimumLengthValidator",
     },
     {
-        "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
+        "NAME": "appointment.password_validators.ChineseCommonPasswordValidator",
     },
     {
-        "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
+        "NAME": "appointment.password_validators.ChineseNumericPasswordValidator",
     },
 ]
 
 # Internationalization
 # https://docs.djangoproject.com/en/4.1/topics/i18n/
 
-LANGUAGE_CODE = "en"
+LANGUAGE_CODE = "zh-hans"
+PHONENUMBER_DEFAULT_REGION = "CN"
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Asia/Shanghai'
 
 USE_I18N = True
 
@@ -131,8 +132,15 @@ STATICFILES_DIRS = [os.path.join(BASE_DIR, "appointment/static")]
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 APPOINTMENT_BUFFER_TIME = 0
+APPOINTMENT_MAX_CAPACITY = int(os.getenv('APPOINTMENT_MAX_CAPACITY', '50'))
+APPOINTMENT_REDIS_HOST = os.getenv('APPOINTMENT_REDIS_HOST', os.getenv('REDIS_HOST', 'redis'))
+APPOINTMENT_REDIS_PORT = int(os.getenv('APPOINTMENT_REDIS_PORT', os.getenv('REDIS_PORT', '6379')))
+APPOINTMENT_REDIS_DB = int(os.getenv('APPOINTMENT_REDIS_DB', os.getenv('REDIS_DB', '0')))
+APPOINTMENT_REDIS_PREFIX = os.getenv('APPOINTMENT_REDIS_PREFIX', 'appointment')
+APPOINTMENT_WEB_VERIFICATION_ONLY = os.getenv('APPOINTMENT_WEB_VERIFICATION_ONLY', 'True').lower() == 'true'
 
 LANGUAGES = (
+    ('zh-hans', _('简体中文')),
     ('en', _('English')),
     ('fr', _('French')),
     ('es', _('Spanish')),

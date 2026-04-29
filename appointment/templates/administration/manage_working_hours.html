@@ -46,7 +46,7 @@
                         <div class="input-group date" id="start-timepicker" data-target-input="nearest">
                             <input type="text" class="form-control datetimepicker-input" data-toggle="datetimepicker"
                                    data-target="#start-timepicker" name="{{ working_hours_form.start_time.name }}"
-                                   value="{{ working_hours_form.start_time.value|default:'09:00 AM' }}"
+                                   value="{{ working_hours_form.start_time.value|default:'09:00' }}"
                                    id="{{ working_hours_form.start_time.id_for_label }}">
                             <div class="input-group-append" data-toggle="datetimepicker"
                                  data-target="#start-timepicker">
@@ -60,7 +60,7 @@
                         <div class="input-group date" id="end-timepicker" data-target-input="nearest">
                             <input type="text" class="form-control datetimepicker-input" data-toggle="datetimepicker"
                                    data-target="#end-timepicker" name="{{ working_hours_form.end_time.name }}"
-                                   value="{{ working_hours_form.end_time.value|default:'05:00 PM' }}"
+                                   value="{{ working_hours_form.end_time.value|default:'17:00' }}"
                                    id="{{ working_hours_form.end_time.id_for_label }}">
                             <div class="input-group-append" data-toggle="datetimepicker" data-target="#end-timepicker">
                                 <div class="input-group-text"><i class="far fa-clock"></i></div>
@@ -115,11 +115,11 @@
             const startTimePicker = $('#start-timepicker');
             const endTimePicker = $('#end-timepicker');
 
-            const defaultStartTime = startTimeInput.val() ? moment(startTimeInput.val(), 'hh:mm A') : moment().hour(12).minute(0);
-            const defaultEndTime = endTimeInput.val() ? moment(endTimeInput.val(), 'hh:mm A') : moment().hour(13).minute(0);
+            const defaultStartTime = startTimeInput.val() ? moment(startTimeInput.val(), 'HH:mm') : moment().hour(9).minute(0);
+            const defaultEndTime = endTimeInput.val() ? moment(endTimeInput.val(), 'HH:mm') : moment().hour(17).minute(0);
 
             startTimePicker.datetimepicker({
-                format: 'hh:mm A',
+                format: 'HH:mm',
                 icons: {
                     time: 'far fa-clock'
                 },
@@ -129,7 +129,7 @@
             });
 
             endTimePicker.datetimepicker({
-                format: 'hh:mm A',
+                format: 'HH:mm',
                 icons: {
                     time: 'far fa-clock'
                 },
@@ -139,11 +139,11 @@
             });
 
             startTimePicker.on('change.datetimepicker', function (e) {
-                startTimeInput.val(e.date.format('hh:mm A'));
+                startTimeInput.val(e.date.format('HH:mm'));
             });
 
             endTimePicker.on('change.datetimepicker', function (e) {
-                endTimeInput.val(e.date.format('hh:mm A'));
+                endTimeInput.val(e.date.format('HH:mm'));
             });
         });
 
@@ -180,4 +180,3 @@
     <script src="{% static 'js/modal/error_modal.js' %}"></script>
     <script src="{% static 'js/js-utils.js' %}"></script>
 {% endblock %}
-

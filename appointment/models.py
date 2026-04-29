@@ -26,18 +26,18 @@ from appointment.utils.date_time import convert_minutes_in_human_readable_format
 from appointment.utils.view_helpers import generate_random_id, get_locale
 
 PAYMENT_TYPES = (
-    ('full', _('Full payment')),
-    ('down', _('Down payment')),
+    ('full', '全额支付'),
+    ('down', '支付定金'),
 )
 
 DAYS_OF_WEEK = (
-    (0, _('Sunday')),
-    (1, _('Monday')),
-    (2, _('Tuesday')),
-    (3, _('Wednesday')),
-    (4, _('Thursday')),
-    (5, _('Friday')),
-    (6, _('Saturday')),
+    (0, '星期日'),
+    (1, '星期一'),
+    (2, '星期二'),
+    (3, '星期三'),
+    (4, '星期四'),
+    (5, '星期五'),
+    (6, '星期六'),
 )
 
 
@@ -64,66 +64,65 @@ class Service(models.Model):
     Version: 1.1.0
     Since: 1.0.0
     """
-    name = models.CharField(max_length=100, blank=False, verbose_name=_('Name'))
-    description = models.TextField(blank=True, null=True, verbose_name=_('Description'))
+    name = models.CharField(max_length=100, blank=False, verbose_name='名称')
+    description = models.TextField(blank=True, null=True, verbose_name='描述')
     duration = models.DurationField(
         validators=[MinValueValidator(datetime.timedelta(seconds=1))],
-        verbose_name=_("Duration")
+        verbose_name='时长'
     )
     price = models.DecimalField(
         max_digits=8,
         decimal_places=2,
         validators=[MinValueValidator(0)],
-        verbose_name=_("Price")
+        verbose_name='价格'
     )
     down_payment = models.DecimalField(
         max_digits=6,
         decimal_places=2,
         default=0,
         validators=[MinValueValidator(0)],
-        verbose_name=_("Down Payment")
+        verbose_name='定金'
     )
-    image = models.ImageField(upload_to='services/', blank=True, null=True, verbose_name=_('Image'), )
+    image = models.ImageField(upload_to='services/', blank=True, null=True, verbose_name='图像', )
     currency = models.CharField(
         max_length=3,
         default='USD',
         validators=[MaxLengthValidator(3), MinLengthValidator(3)],
-        verbose_name=_("Currency")
+        verbose_name='币种'
     )
     background_color = models.CharField(
         max_length=50,
         null=True,
         blank=True,
         default=generate_rgb_color,
-        verbose_name=_("Background Color")
+        verbose_name='背景颜色'
     )
     reschedule_limit = models.PositiveIntegerField(
         default=0,
-        help_text=_("Maximum number of times an appointment can be rescheduled."),
-        verbose_name=_("Reschedule limit")
+        help_text='该服务允许改约的最大次数。',
+        verbose_name='改约次数上限'
     )
     allow_rescheduling = models.BooleanField(
         default=False,
-        help_text=_("Indicates whether appointments for this service can be rescheduled."),
-        verbose_name=_("Allow Rescheduling")
+        help_text='是否允许该服务的预约进行改约。',
+        verbose_name='允许改约'
     )
     use_service_duration_as_slot = models.BooleanField(
         default=True,
-        verbose_name=_("Use Service Duration as Slot"),
-        help_text=_(
-            "If enabled, the service's actual duration is used when checking slot availability, "
-            "preventing overlaps for services longer than the default slot duration. "
-            "Only evaluated when 'Default to service duration' is disabled in Config."
+        verbose_name='使用服务时长作为时间段',
+        help_text=(
+            '启用后，系统检查可预约时间时会使用该服务的实际时长，避免服务时长超过默认时间段时发生重叠。'
+            '仅当系统配置中的“默认使用服务时长”关闭时，此设置才会生效。'
         )
     )
 
     # meta data
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_('Created At'))
-    updated_at = models.DateTimeField(auto_now=True, verbose_name=_('Updated At'))
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
 
     class Meta:
-        verbose_name = _('Service')
-        verbose_name_plural = _('Services')
+        verbose_name = '服务'
+        verbose_name_plural = '服务'
         ordering = ['name']  # alphabetical by default
         indexes = [
             models.Index(fields=['name']),
@@ -154,32 +153,16 @@ class Service(models.Model):
         parts = []
 
         if days:
-            parts.append(ngettext(
-                    "%(count)d day",
-                    "%(count)d days",
-                    days
-            ) % {'count': days})
+            parts.append(f"{days} 天")
 
         if hours:
-            parts.append(ngettext(
-                    "%(count)d hour",
-                    "%(count)d hours",
-                    hours
-            ) % {'count': hours})
+            parts.append(f"{hours} 小时")
 
         if minutes:
-            parts.append(ngettext(
-                    "%(count)d minute",
-                    "%(count)d minutes",
-                    minutes
-            ) % {'count': minutes})
+            parts.append(f"{minutes} 分钟")
 
         if seconds:
-            parts.append(ngettext(
-                    "%(count)d second",
-                    "%(count)d seconds",
-                    seconds
-            ) % {'count': seconds})
+            parts.append(f"{seconds} 秒")
 
         return ' '.join(parts)
 
@@ -195,7 +178,7 @@ class Service(models.Model):
 
     def get_price_text(self):
         if self.price == 0:
-            return _("Free")
+            return '免费'
         else:
             return f"{self.get_price()}{self.get_currency_icon()}"
 
@@ -223,59 +206,55 @@ class Service(models.Model):
 
 
 class StaffMember(models.Model):
-    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, verbose_name=_("User"))
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, verbose_name='用户')
     services_offered = models.ManyToManyField(
         Service,
-        verbose_name=_("Services Offered"),
-        help_text=_("Services that this staff member provides.")
+        verbose_name='提供的服务',
+        help_text='该店员可以提供的服务。'
     )
     slot_duration = models.PositiveIntegerField(
         null=True, blank=True,
-        verbose_name=_("Slot Duration"),
-        help_text=_("Minimum time for an appointment in minutes, recommended 30.")
+        verbose_name='时间段间隔',
+        help_text='预约时间段的最小间隔，单位为分钟，建议填写 30。'
     )
     lead_time = models.TimeField(
         null=True, blank=True,
-        verbose_name=_("Lead Time"),
-        help_text=_("Time when the staff member starts working.")
+        verbose_name='开始营业时间',
+        help_text='该店员开始工作的时间。'
     )
     finish_time = models.TimeField(
         null=True, blank=True,
-        verbose_name=_("Finish Time"),
-        help_text=_("Time when the staff member stops working.")
+        verbose_name='结束营业时间',
+        help_text='该店员结束工作的时间。'
     )
     appointment_buffer_time = models.FloatField(
         blank=True, null=True,
-        verbose_name=_("Appointment Buffer Time"),
-        help_text=_("Time between now and the first available slot for the current day (doesn't affect tomorrow). "
-                    "e.g: If you start working at 9:00 AM and the current time is 8:30 AM and you set it to 30 "
-                    "minutes, the first available slot will be at 9:00 AM. If you set the appointment buffer time to "
-                    "60 minutes, the first available slot will be at 9:30 AM.")
+        verbose_name='预约缓冲时间',
+        help_text='从当前时间到当天第一个可预约时间段之间的缓冲时间，单位为分钟，不影响明天及之后的预约。'
     )
     slot_gap_time = models.PositiveIntegerField(
         null=True, blank=True,
-        verbose_name=_("Slot Gap Time"),
-        help_text=_("Required rest time in minutes between the end of one appointment and the start of the next. "
-                    "Overrides the global Config setting for this staff member.")
+        verbose_name='预约间隔时间',
+        help_text='两个预约之间需要预留的休息时间，单位为分钟。该设置会覆盖全局系统配置。'
     )
     work_on_saturday = models.BooleanField(
         default=False,
-        verbose_name=_("Work on Saturday"),
-        help_text=_("Indicates whether this staff member works on Saturdays.")
+        verbose_name='星期六工作',
+        help_text='该店员是否在星期六工作。'
     )
     work_on_sunday = models.BooleanField(
         default=False,
-        verbose_name=_("Work on Sunday"),
-        help_text=_("Indicates whether this staff member works on Sundays.")
+        verbose_name='星期日工作',
+        help_text='该店员是否在星期日工作。'
     )
 
     # meta data
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
-    updated_at = models.DateTimeField(auto_now=True, verbose_name=_("Updated At"))
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
 
     class Meta:
-        verbose_name = _("Staff Member")
-        verbose_name_plural = _("Staff Members")
+        verbose_name = '店员'
+        verbose_name_plural = '店员'
         ordering = ['user__first_name', 'user__last_name']
 
     def __str__(self):
@@ -326,7 +305,7 @@ class StaffMember(models.Model):
             return email.strip()
 
         # Fallback
-        return f"Staff Member {self.id}"
+        return f"店员 {self.id}"
 
     def get_staff_member_first_name(self):
         return self.user.first_name
@@ -342,13 +321,13 @@ class StaffMember(models.Model):
 
     def get_weekend_days_worked_text(self):
         if self.work_on_saturday and self.work_on_sunday:
-            return _("Saturday and Sunday")
+            return '星期六和星期日'
         elif self.work_on_saturday:
-            return _("Saturday")
+            return '星期六'
         elif self.work_on_sunday:
-            return _("Sunday")
+            return '星期日'
         else:
-            return _("None")
+            return '无'
 
     def get_services_offered(self):
         return self.services_offered.all()
@@ -391,37 +370,37 @@ class AppointmentRequest(models.Model):
     Author: Adams Pierre David
     Since: 1.0.0
     """
-    date = models.DateField(verbose_name=_("Date"), help_text=_("The date of the appointment request."))
+    date = models.DateField(verbose_name='日期', help_text='预约请求的日期。')
     start_time = models.TimeField(
-        verbose_name=_("Start Time"),
-        help_text=_("The start time of the appointment request.")
+        verbose_name='开始时间',
+        help_text='预约请求的开始时间。'
     )
     end_time = models.TimeField(
-        verbose_name=_("End Time"),
-        help_text=_("The end time of the appointment request.")
+        verbose_name='结束时间',
+        help_text='预约请求的结束时间。'
     )
-    service = models.ForeignKey(Service, on_delete=models.CASCADE, verbose_name=_("Service"))
-    staff_member = models.ForeignKey(StaffMember, on_delete=models.SET_NULL, null=True, verbose_name=_("Staff Member"))
+    service = models.ForeignKey(Service, on_delete=models.CASCADE, verbose_name='服务')
+    staff_member = models.ForeignKey(StaffMember, on_delete=models.SET_NULL, null=True, verbose_name='店员')
     payment_type = models.CharField(
         max_length=4,
         choices=PAYMENT_TYPES,
         default='full',
-        verbose_name=_("Payment Type")
+        verbose_name='支付类型'
     )
-    id_request = models.CharField(max_length=100, blank=True, null=True, verbose_name=_("Request ID"))
+    id_request = models.CharField(max_length=100, blank=True, null=True, verbose_name='请求编号')
     reschedule_attempts = models.PositiveIntegerField(
         default=0,
-        verbose_name=_("Reschedule Attempts"),
-        help_text=_("Number of times this appointment has been rescheduled.")
+        verbose_name='改约次数',
+        help_text='该预约已经改约的次数。'
     )
 
     # meta data
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
-    updated_at = models.DateTimeField(auto_now=True, verbose_name=_("Updated At"))
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
 
     class Meta:
-        verbose_name = _("Appointment Request")
-        verbose_name_plural = _("Appointment Requests")
+        verbose_name = '预约请求'
+        verbose_name_plural = '预约请求'
         ordering = ['-created_at']
         indexes = [
             models.Index(fields=['date', 'start_time']),
@@ -434,13 +413,13 @@ class AppointmentRequest(models.Model):
     def clean(self):
         if self.start_time is not None and self.end_time is not None:
             if self.start_time > self.end_time:
-                raise ValidationError(_("Start time must be before end time"))
+                raise ValidationError('开始时间必须早于结束时间')
             if self.start_time == self.end_time:
-                raise ValidationError(_("Start time and end time cannot be the same"))
+                raise ValidationError('开始时间和结束时间不能相同')
 
         # Ensure the date is not in the past:
-        if self.date and self.date < datetime.date.today():
-            raise ValidationError(_("Date cannot be in the past"))
+        if self.date and self.date < timezone.localdate():
+            raise ValidationError('日期不能早于今天')
 
     def save(self, *args, **kwargs):
         # if no id_request is provided, generate one
@@ -448,13 +427,13 @@ class AppointmentRequest(models.Model):
             self.id_request = f"{get_timestamp()}{self.service.id}{generate_random_id()}"
         # start time should not be equal to end time
         if self.start_time == self.end_time:
-            raise ValidationError(_("Start time and end time cannot be the same"))
+            raise ValidationError('开始时间和结束时间不能相同')
         # date should not be in the past
-        if self.date < datetime.date.today():
-            raise ValidationError(_("Date cannot be in the past"))
+        if self.date < timezone.localdate():
+            raise ValidationError('日期不能早于今天')
         # duration should not exceed the service duration
         if time_difference(self.start_time, self.end_time) > self.service.duration:
-            raise ValidationError(_("Duration cannot exceed the service duration"))
+            raise ValidationError('预约时长不能超过服务时长')
         return super().save(*args, **kwargs)
 
     def get_service_name(self):
@@ -499,55 +478,55 @@ class AppointmentRescheduleHistory(models.Model):
     appointment_request = models.ForeignKey(
         'AppointmentRequest',
         on_delete=models.CASCADE, related_name='reschedule_histories',
-        verbose_name=_("Appointment Request"),
-        help_text=_("The appointment request made by a client.")
+        verbose_name='预约请求',
+        help_text='客户提交的预约请求。'
     )
     date = models.DateField(
-        verbose_name=_("Date"),
-        help_text=_("The previous date of the appointment before it was rescheduled.")
+        verbose_name='日期',
+        help_text='改约前的预约日期。'
     )
     start_time = models.TimeField(
-        verbose_name=_("Start Time"),
-        help_text=_("The previous start time of the appointment before it was rescheduled.")
+        verbose_name='开始时间',
+        help_text='改约前的预约开始时间。'
     )
     end_time = models.TimeField(
-        verbose_name=_("End Time"),
-        help_text=_("The previous end time of the appointment before it was rescheduled.")
+        verbose_name='结束时间',
+        help_text='改约前的预约结束时间。'
     )
     staff_member = models.ForeignKey(
         StaffMember, on_delete=models.SET_NULL, null=True,
-        verbose_name=_("Staff Member"),
-        help_text=_("The previous staff member of the appointment before it was rescheduled.")
+        verbose_name='店员',
+        help_text='改约前负责该预约的店员。'
     )
     reason_for_rescheduling = models.TextField(
         blank=True, null=True,
-        verbose_name=_("Reason for Rescheduling"),
-        help_text=_("Reason for the appointment reschedule.")
+        verbose_name='改约原因',
+        help_text='本次改约的原因。'
     )
     reschedule_status = models.CharField(
         max_length=10,
-        choices=[('pending', _('Pending')), ('confirmed', _('Confirmed'))],
+        choices=[('pending', '待确认'), ('confirmed', '已确认')],
         default='pending',
-        verbose_name=_("Reschedule Status"),
-        help_text=_("Indicates the status of the reschedule action.")
+        verbose_name='改约状态',
+        help_text='本次改约操作的当前状态。'
     )
-    id_request = models.CharField(max_length=100, blank=True, null=True, verbose_name=_("Request ID"),)
+    id_request = models.CharField(max_length=100, blank=True, null=True, verbose_name='请求编号',)
 
     # meta data
     created_at = models.DateTimeField(
         auto_now_add=True,
-        verbose_name=_("Created At"),
-        help_text=_("The date and time the reschedule was recorded.")
+        verbose_name='创建时间',
+        help_text='该改约记录创建的日期和时间。'
     )
     updated_at = models.DateTimeField(
         auto_now=True,
-        verbose_name=_("Updated At"),
-        help_text=_("The date and time the reschedule was confirmed.")
+        verbose_name='更新时间',
+        help_text='该改约记录最后更新或确认的日期和时间。'
     )
 
     class Meta:
-        verbose_name = _("Appointment Reschedule History")
-        verbose_name_plural = _("Appointment Reschedule Histories")
+        verbose_name = '改约记录'
+        verbose_name_plural = '改约记录'
         ordering = ['-created_at']
 
     def __str__(self):
@@ -558,12 +537,12 @@ class AppointmentRescheduleHistory(models.Model):
         if self.id_request is None:
             self.id_request = f"{get_timestamp()}{generate_random_id()}"
         # date should not be in the past
-        if self.date < datetime.date.today():
-            raise ValidationError(_("Date cannot be in the past"))
+        if self.date < timezone.localdate():
+            raise ValidationError('日期不能早于今天')
         try:
             datetime.datetime.strptime(str(self.date), '%Y-%m-%d')
         except ValueError:
-            raise ValidationError(_("The date is not valid"))
+            raise ValidationError('日期格式无效')
         return super().save(*args, **kwargs)
 
     def still_valid(self):
@@ -581,62 +560,87 @@ class Appointment(models.Model):
     Version: 1.1.0
     Since: 1.0.0
     """
+    class Status(models.TextChoices):
+        BOOKED = 'booked', '已预约'
+        ENTERED = 'entered', '已入场'
+        FINISHED = 'finished', '已离场'
+        CANCELLED = 'cancelled', '已取消'
+
     client = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
         null=True,
-        verbose_name=_("Client"),
-        help_text=_("The user who made the appointment request.")
+        verbose_name='客户',
+        help_text='提交该预约请求的用户。'
     )
     appointment_request = models.OneToOneField(
         AppointmentRequest,
         on_delete=models.CASCADE,
-        verbose_name=_("Appointment Request"),
-        help_text=_("The appointment request made by the client.")
+        verbose_name='预约请求',
+        help_text='客户提交的预约请求。'
     )
-    phone = PhoneNumberField(blank=True, verbose_name=_("Phone Number"))
+    phone = PhoneNumberField(blank=True, verbose_name='电话号码')
     address = models.CharField(
         max_length=255,
         blank=True, null=True,
         default="",
-        verbose_name=_("Address"),
-        help_text=_("Does not have to be specific, just the city and the state")
+        verbose_name='地址',
+        help_text='可填写城市、区域或简要地址，不必过于详细。'
     )
     want_reminder = models.BooleanField(
         default=False,
-        verbose_name=_("Want Reminder"),
-        help_text=_("Indicates whether the client wants a reminder for the appointment.")
+        verbose_name='需要提醒',
+        help_text='客户是否希望收到预约提醒。'
     )
     additional_info = models.TextField(
         blank=True, null=True,
-        verbose_name=_("Additional Info"),
-        help_text=_("Any additional information the client wants to provide for the appointment.")
+        verbose_name='附加信息',
+        help_text='客户希望补充说明的其他信息。'
     )
     paid = models.BooleanField(
         default=False,
-        verbose_name=_("Paid"),
-        help_text=_("Indicates whether the appointment has been paid for.")
+        verbose_name='已支付',
+        help_text='该预约是否已经付款。'
     )
     amount_to_pay = models.DecimalField(
         max_digits=10,
         decimal_places=2,
         blank=True, null=True,
-        verbose_name=_("Amount to Pay"),
-        help_text=_("The amount to be paid for the appointment. "
-                    "If 0, it means the appointment is free or already paid.")
+        verbose_name='应付金额',
+        help_text='该预约需要支付的金额。若为 0，表示免费或已经支付。'
     )
-    id_request = models.CharField(max_length=100, blank=True, null=True, verbose_name=_("Request ID"))
+    id_request = models.CharField(max_length=100, blank=True, null=True, verbose_name='请求编号')
+    status = models.CharField(
+        max_length=10,
+        choices=Status.choices,
+        default=Status.BOOKED,
+        verbose_name='状态',
+        help_text='该预约当前的入场生命周期状态。'
+    )
+    entered_at = models.DateTimeField(
+        blank=True,
+        null=True,
+        verbose_name='入场时间',
+        help_text='客户被允许入场的时间。'
+    )
+    left_at = models.DateTimeField(
+        blank=True,
+        null=True,
+        verbose_name='离场时间',
+        help_text='客户离场并释放名额的时间。'
+    )
 
     # meta datas
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
-    updated_at = models.DateTimeField(auto_now=True, verbose_name=_("Updated At"))
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
 
     class Meta:
-        verbose_name = _("Appointment")
-        verbose_name_plural = _("Appointments")
+        verbose_name = '预约'
+        verbose_name_plural = '预约'
         ordering = ['-created_at']
         indexes = [
             models.Index(fields=['client', '-created_at']),
+            models.Index(fields=['status']),
         ]
         constraints = [
             models.CheckConstraint(
@@ -652,7 +656,7 @@ class Appointment(models.Model):
 
     def save(self, *args, **kwargs):
         if not hasattr(self, 'appointment_request'):
-            raise ValidationError("Appointment request is required")
+            raise ValidationError('预约请求不能为空')
 
         if self.id_request is None:
             self.id_request = f"{get_timestamp()}{self.appointment_request.id}{generate_random_id()}"
@@ -699,6 +703,17 @@ class Appointment(models.Model):
     def get_staff_member(self):
         return self.appointment_request.staff_member
 
+    def mark_entered(self, when=None):
+        self.status = self.Status.ENTERED
+        self.entered_at = when or timezone.now()
+        self.left_at = None
+        self.save(update_fields=['status', 'entered_at', 'left_at', 'updated_at'])
+
+    def mark_finished(self, when=None):
+        self.status = self.Status.FINISHED
+        self.left_at = when or timezone.now()
+        self.save(update_fields=['status', 'left_at', 'updated_at'])
+
     def get_service_price(self):
         return self.appointment_request.get_service_price()
 
@@ -726,7 +741,7 @@ class Appointment(models.Model):
         return self.get_service_price() != 0
 
     def is_paid_text(self):
-        return _("Yes") if self.is_paid() else _("No")
+        return '是' if self.is_paid() else '否'
 
     def get_appointment_amount_to_pay(self):
         # Check if the decimal part is 0
@@ -737,14 +752,14 @@ class Appointment(models.Model):
 
     def get_appointment_amount_to_pay_text(self):
         if self.amount_to_pay == 0 and self.get_service_price() == 0:
-            return _("Free")
+            return '免费'
         return f"{self.get_appointment_amount_to_pay()}{self.get_service().get_currency_icon()}"
 
     def get_appointment_currency(self):
         return self.appointment_request.service.currency
 
     def wants_reminder_text(self):
-        return _("Yes") if self.want_reminder else _("No")
+        return '是' if self.want_reminder else '否'
 
     def get_appointment_id_request(self):
         return self.id_request
@@ -769,29 +784,32 @@ class Appointment(models.Model):
         try:
             working_hours = WorkingHours.objects.get(staff_member=staff_member, day_of_week=weekday_num)
         except WorkingHours.DoesNotExist:
-            message = _("{staff_member} does not work on this day.").format(staff_member=sm_name)
+            message = f"{sm_name} 当天不工作。"
             return False, message
 
         # Check if the start time falls within the staff member's working hours
         if not (working_hours.start_time <= start_time.time() <= working_hours.end_time):
-            message = _("The appointment start time is outside of {staff_member}'s working hours.").format(
-                staff_member=sm_name)
+            message = f"预约开始时间不在 {sm_name} 的营业时间内。"
             return False, message
 
-        # Check if the staff member already has an appointment on the given date and time
-        # Using prefetch_related to reduce DB hits when accessing related objects
-        appt_list = Appointment.objects.filter(appointment_request__staff_member=staff_member,
-                                               appointment_request__date=appt_date).exclude(
-            id=current_appointment_id).prefetch_related('appointment_request')
-        for appt in appt_list:
-            if appt.appointment_request.start_time <= start_time.time() <= appt.appointment_request.end_time:
-                message = _("{staff_member} already has an appointment at this time.").format(staff_member=sm_name)
-                return False, message
+        max_capacity = CapacityState.objects.filter(pk=1).values_list('max_capacity', flat=True).first()
+        if max_capacity is None:
+            max_capacity = int(getattr(settings, 'APPOINTMENT_MAX_CAPACITY', 50))
+
+        overlapping_count = Appointment.objects.filter(
+            appointment_request__date=appt_date,
+            appointment_request__start_time__lte=start_time.time(),
+            appointment_request__end_time__gte=start_time.time(),
+            status__in=(Appointment.Status.BOOKED, Appointment.Status.ENTERED),
+        ).exclude(id=current_appointment_id).count()
+        if overlapping_count >= max_capacity:
+            message = f"该时间段预约人数已达到最大容量 {max_capacity} 人。"
+            return False, message
 
         # Check if the staff member has a day off on the appointment's date
         days_off = DayOff.objects.filter(staff_member=staff_member, start_date__lte=appt_date, end_date__gte=appt_date)
         if days_off.exists():
-            message = _("{staff_member} has a day off on this date.").format(staff_member=sm_name)
+            message = f"{sm_name} 在该日期休息。"
             return False, message
 
         return True, ""
@@ -827,81 +845,79 @@ class Config(models.Model):
     """
     slot_duration = models.PositiveIntegerField(
         null=True,
-        verbose_name=_("Slot Duration"),
-        help_text=_("Minimum time for an appointment in minutes, recommended 30."),
+        verbose_name='时间段间隔',
+        help_text='预约时间段的最小间隔，单位为分钟，建议填写 30。',
     )
     lead_time = models.TimeField(
         null=True,
-        verbose_name=_("Lead Time"),
-        help_text=_("Time when we start working."),
+        verbose_name='开始营业时间',
+        help_text='门店开始营业的时间。',
     )
     finish_time = models.TimeField(
         null=True,
-        verbose_name=_("Finish Time"),
-        help_text=_("Time when we stop working."),
+        verbose_name='结束营业时间',
+        help_text='门店结束营业的时间。',
     )
     appointment_buffer_time = models.FloatField(
         null=True,
-        verbose_name=_("Appointment Buffer Time"),
-        help_text=_("Time between now and the first available slot for the current day (doesn't affect tomorrow)."),
+        verbose_name='预约缓冲时间',
+        help_text='从当前时间到当天第一个可预约时间段之间的缓冲时间，不影响明天及之后的预约。',
     )
     website_name = models.CharField(
         max_length=255,
         default="",
-        verbose_name=_("Website Name"),
-        help_text=_("Name of your website."),
+        verbose_name='网站名称',
+        help_text='当前预约网站显示的名称。',
     )
     app_offered_by_label = models.CharField(
         max_length=255,
-        default=_("Offered by"),
-        verbose_name=_("`Offered by` Label"),
-        help_text=_("Label for `Offered by` on the appointment page")
+        default='服务人员',
+        verbose_name='服务人员标签',
+        help_text='预约页面中用于展示服务人员的标签文字。'
     )
     default_reschedule_limit = models.PositiveIntegerField(
         default=3,
-        verbose_name=_("Default Reschedule Limit"),
-        help_text=_("Default maximum number of times an appointment can be rescheduled across all services.")
+        verbose_name='默认改约次数上限',
+        help_text='所有服务默认允许改约的最大次数。'
     )
     allow_staff_change_on_reschedule = models.BooleanField(
         default=True,
-        verbose_name=_("Allow Staff Change on Reschedule"),
-        help_text=_("Allows clients to change the staff member when rescheduling an appointment.")
+        verbose_name='改约时允许更换店员',
+        help_text='客户改约时是否允许更换负责该预约的店员。'
     )
     default_to_service_duration = models.BooleanField(
         default=True,
-        verbose_name=_("Default to Service Duration"),
-        help_text=_(
-            "When enabled, all services automatically use their own duration when checking slot availability, "
-            "preventing overlaps for longer services. When disabled, each service's individual "
-            "'Use Service Duration as Slot' setting is respected instead."
+        verbose_name='默认使用服务时长',
+        help_text=(
+            '启用后，所有服务在检查可预约时间时都会自动使用各自的服务时长，避免长服务发生时间重叠。'
+            '关闭后，将使用每个服务自己的“使用服务时长作为时间段”设置。'
         )
     )
     slot_gap_time = models.PositiveIntegerField(
         null=True, blank=True,
-        verbose_name=_("Slot Gap Time"),
-        help_text=_("Required rest time in minutes between the end of one appointment and the start of the next. "
-                    "Applies to all staff members unless overridden per staff member.")
+        verbose_name='预约间隔时间',
+        help_text='两个预约之间需要预留的休息时间，单位为分钟。除非店员单独配置，否则该设置应用于所有店员。'
     )
 
     # meta data
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
-    updated_at = models.DateTimeField(auto_now=True, verbose_name=_("Updated At"))
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
 
     class Meta:
-        verbose_name = _("Config")
-        verbose_name_plural = _("Configs")
+        verbose_name = '系统配置'
+        verbose_name_plural = '系统配置'
         ordering = ['-created_at']
 
     def clean(self):
         if Config.objects.exists() and not self.pk:
-            raise ValidationError(_("You can only create one Config object"))
+            raise ValidationError('只能创建一个系统配置')
         if self.lead_time is not None and self.finish_time is not None:
             if self.lead_time >= self.finish_time:
-                raise ValidationError(_("Lead time must be before finish time"))
+                raise ValidationError('开始营业时间必须早于结束营业时间')
         if self.appointment_buffer_time is not None and self.appointment_buffer_time < 0:
-            raise ValidationError(_("Appointment buffer time cannot be negative"))
+            raise ValidationError('预约缓冲时间不能为负数')
         if self.slot_duration is not None and self.slot_duration <= 0:
-            raise ValidationError(_("Slot duration must be greater than 0"))
+            raise ValidationError('时间段间隔必须大于 0')
 
     def save(self, *args, **kwargs):
         self.clean()
@@ -921,6 +937,30 @@ class Config(models.Model):
                f"finish_time={self.finish_time}"
 
 
+class CapacityState(models.Model):
+    """Singleton fallback counter used when Redis is unavailable."""
+
+    current_count = models.PositiveIntegerField(default=0, verbose_name='当前在场人数')
+    max_capacity = models.PositiveIntegerField(default=50, verbose_name='最大容量')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
+
+    class Meta:
+        verbose_name = '容量状态'
+        verbose_name_plural = '容量状态'
+
+    def save(self, *args, **kwargs):
+        self.pk = 1
+        super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        pass
+
+    @classmethod
+    def get_instance(cls, max_capacity=50):
+        return cls.objects.get_or_create(pk=1, defaults={'max_capacity': max_capacity})[0]
+
+
 class PaymentInfo(models.Model):
     """
     Represents payment information for an appointment.
@@ -929,15 +969,15 @@ class PaymentInfo(models.Model):
     Version: 1.1.0
     Since: 1.0.0
     """
-    appointment = models.ForeignKey(Appointment, on_delete=models.CASCADE, verbose_name=_("Appointment"))
+    appointment = models.ForeignKey(Appointment, on_delete=models.CASCADE, verbose_name='预约')
 
     # meta data
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
-    updated_at = models.DateTimeField(auto_now=True, verbose_name=_("Updated At"))
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
 
     class Meta:
-        verbose_name = _("Payment Info")
-        verbose_name_plural = _("Payment Infos")
+        verbose_name = '支付信息'
+        verbose_name_plural = '支付信息'
         ordering = ['-created_at']
 
     def __str__(self):
@@ -979,20 +1019,20 @@ class EmailVerificationCode(models.Model):
     Version: 1.1.0
     Since: 1.1.0
     """
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, verbose_name=_("User"))
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, verbose_name='用户')
     code = models.CharField(
         max_length=6,
-        verbose_name=_("Verification Code"),
-        help_text=_("The verification code sent to the user's email.")
+        verbose_name='验证码',
+        help_text='发送到用户邮箱的验证码。'
     )
 
     # meta data
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
-    updated_at = models.DateTimeField(auto_now=True, verbose_name=_("Updated At"))
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
 
     class Meta:
-        verbose_name = _("Email Verification Code")
-        verbose_name_plural = _("Email Verification Codes")
+        verbose_name = '邮箱验证码'
+        verbose_name_plural = '邮箱验证码'
         ordering = ['-created_at']
 
     def __str__(self):
@@ -1019,32 +1059,32 @@ class PasswordResetToken(models.Model):
     """
 
     class TokenStatus(models.TextChoices):
-        ACTIVE = 'active', _('Active')
-        VERIFIED = 'verified', _('Verified')
-        INVALIDATED = 'invalidated', _('Invalidated')
+        ACTIVE = 'active', '有效'
+        VERIFIED = 'verified', '已验证'
+        INVALIDATED = 'invalidated', '已失效'
 
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name='password_reset_tokens',
-        verbose_name=_("User"),
+        verbose_name='用户',
     )
-    token = models.UUIDField(default=uuid.uuid4, editable=False, unique=True, verbose_name=_("Token"))
-    expires_at = models.DateTimeField(verbose_name=_("Expires At"))
+    token = models.UUIDField(default=uuid.uuid4, editable=False, unique=True, verbose_name='令牌')
+    expires_at = models.DateTimeField(verbose_name='过期时间')
     status = models.CharField(
         max_length=11,
         choices=TokenStatus.choices,
         default=TokenStatus.ACTIVE,
-        verbose_name=_("Status"),
+        verbose_name='状态',
     )
 
     # meta data
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
-    updated_at = models.DateTimeField(auto_now=True, verbose_name=_("Updated At"))
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
 
     class Meta:
-        verbose_name = _("Password Reset Token")
-        verbose_name_plural = _("Password Reset Tokens")
+        verbose_name = '密码重置令牌'
+        verbose_name_plural = '密码重置令牌'
         ordering = ['-created_at']
 
     def __str__(self):
@@ -1103,45 +1143,45 @@ class PasswordResetToken(models.Model):
 
 
 class DayOff(models.Model):
-    staff_member = models.ForeignKey(StaffMember, on_delete=models.CASCADE, verbose_name=_("Staff Member"))
-    start_date = models.DateField(verbose_name=_("Start Date"))
-    end_date = models.DateField(verbose_name=_("End Date"))
-    description = models.CharField(max_length=255, blank=True, null=True, verbose_name=_("Description"))
+    staff_member = models.ForeignKey(StaffMember, on_delete=models.CASCADE, verbose_name='店员')
+    start_date = models.DateField(verbose_name='开始日期')
+    end_date = models.DateField(verbose_name='结束日期')
+    description = models.CharField(max_length=255, blank=True, null=True, verbose_name='描述')
 
     # meta data
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
-    updated_at = models.DateTimeField(auto_now=True, verbose_name=_("Updated At"))
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
 
     class Meta:
-        verbose_name = _("Day Off")
-        verbose_name_plural = _("Days Off")
+        verbose_name = '休息日'
+        verbose_name_plural = '休息日'
         ordering = ['-start_date']
 
     def __str__(self):
-        return f"{self.start_date} to {self.end_date} - {self.description if self.description else 'Day off'}"
+        return f"{self.start_date} 到 {self.end_date} - {self.description if self.description else '休息日'}"
 
     def clean(self):
         if self.start_date is not None and self.end_date is not None:
             if self.start_date > self.end_date:
-                raise ValidationError(_("Start date must be before end date"))
+                raise ValidationError('开始日期必须早于结束日期')
 
     def is_owner(self, user_id):
         return self.staff_member.user.id == user_id
 
 
 class WorkingHours(models.Model):
-    staff_member = models.ForeignKey(StaffMember, on_delete=models.CASCADE, verbose_name=_("Staff Member"))
-    day_of_week = models.PositiveIntegerField(choices=DAYS_OF_WEEK, verbose_name=_("Day of Week"))
-    start_time = models.TimeField(verbose_name=_("Start Time"))
-    end_time = models.TimeField(verbose_name=_("End Time"))
+    staff_member = models.ForeignKey(StaffMember, on_delete=models.CASCADE, verbose_name='店员')
+    day_of_week = models.PositiveIntegerField(choices=DAYS_OF_WEEK, verbose_name='星期')
+    start_time = models.TimeField(verbose_name='开始时间')
+    end_time = models.TimeField(verbose_name='结束时间')
 
     # meta data
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
-    updated_at = models.DateTimeField(auto_now=True, verbose_name=_("Updated At"))
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
 
     class Meta:
-        verbose_name = _("Working Hour")
-        verbose_name_plural = _("Working Hours")
+        verbose_name = '营业时间'
+        verbose_name_plural = '营业时间'
         ordering = ['day_of_week', 'start_time']
         unique_together = ['staff_member', 'day_of_week']
         constraints = [
@@ -1152,7 +1192,7 @@ class WorkingHours(models.Model):
         ]
 
     def __str__(self):
-        return f"{self.get_day_of_week_display()} - {self.start_time} to {self.end_time}"
+        return f"{self.get_day_of_week_display()} - {self.start_time} 到 {self.end_time}"
 
     def save(self, *args, **kwargs):
         # Call the original save method
@@ -1167,7 +1207,7 @@ class WorkingHours(models.Model):
 
     def clean(self):
         if self.start_time >= self.end_time:
-            raise ValidationError("Start time must be before end time")
+            raise ValidationError('开始时间必须早于结束时间')
 
     def get_start_time(self):
         return self.start_time

@@ -6,22 +6,28 @@
     <link rel="stylesheet" href="{% static 'css/verification_code.css' %}">
 {% endblock %}
 
-{% block title %}{% trans 'Enter Verification Code' %}{% endblock %}
-{% block description %}{% trans 'Enter Verification Code' %}{% endblock %}
+{% block title %}输入验证码{% endblock %}
+{% block description %}输入验证码{% endblock %}
 
 {% block body %}
     <div class="vcode-container">
         <div class="vcode-card">
-            <h1 class="vcode-title">{% trans 'Enter Verification Code' %}</h1>
-            <p class="vcode-instruction">{% trans "We've sent a verification code to your email. Please enter it below" %}:</p>
+            <h1 class="vcode-title">输入验证码</h1>
+            <p class="vcode-instruction">请把页面显示的验证码填入下方，用于确认你不是自动提交程序：</p>
+
+            {% if debug_verification_code %}
+                <div class="vcode-alert vcode-alert-info">
+                    网页验证码：<strong>{{ debug_verification_code }}</strong>
+                </div>
+            {% endif %}
 
             <form method="post" class="vcode-form">
                 {% csrf_token %}
                 <div class="vcode-input-group">
-                    <label for="verification-code" class="vcode-label">{% trans 'Code' %}:</label>
+                    <label for="verification-code" class="vcode-label">验证码：</label>
                     <input type="text" id="verification-code" name="code" class="vcode-input" required>
                 </div>
-                <button type="submit" class="vcode-button">{% trans 'Submit' %}</button>
+                <button type="submit" class="vcode-button">提交</button>
             </form>
 
             {% if messages %}

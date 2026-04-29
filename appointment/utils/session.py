@@ -7,11 +7,13 @@ Since: 1.1.0
 """
 
 from django.contrib import messages
+from django.conf import settings
 from django.shortcuts import redirect
 from django.utils.translation import gettext as _
 from phonenumber_field.phonenumber import PhoneNumber
 
 from appointment.logger_config import get_logger
+from appointment.models import EmailVerificationCode
 from appointment.utils.db_helpers import get_user_by_email
 from appointment.utils.email_ops import send_verification_email
 
@@ -37,7 +39,10 @@ def handle_existing_email(request, client_data, appointment_data, appointment_re
     """
     logger.info("Email already in database, saving info in session and redirecting to enter verification code")
     user = get_user_by_email(client_data['email'])
-    send_verification_email(user=user, email=client_data['email'])
+    if getattr(settings, 'APPOINTMENT_WEB_VERIFICATION_ONLY', True):
+        EmailVerificationCode.generate_code(user=user)
+    else:
+        send_verification_email(user=user, email=client_data['email'])
 
     # clean the session variables
     session_keys = ['email', 'phone', 'want_reminder', 'address', 'additional_info']
@@ -55,7 +60,7 @@ def handle_existing_email(request, client_data, appointment_data, appointment_re
 
     # request.session['BASE_TEMPLATE'] = get_generic_context(request, admin=False)['BASE_TEMPLATE']
     request.session.modified = True
-    message = _("Email '{email}' already exists. Login to your account.").format(email=client_data['email'])
+    message = f"邮箱 {client_data['email']} 已存在，请回填页面显示的验证码确认身份。"
     messages.error(request, message)
     return redirect('appointment:enter_verification_code', appointment_request_id=appointment_request_id,
                     id_request=id_request)
@@ -83,6 +88,8 @@ def get_appointment_data_from_session(request):
     :return: The appointment data retrieved from the session.
     """
     phone = request.session.get('phone')
+    if not phone:
+        raise ValueError('预约信息已过期，请返回预约信息页面重新提交。')
     phone_obj = PhoneNumber.from_string(phone)
     want_reminder = request.session.get('want_reminder', False)
     address = request.session.get('address')

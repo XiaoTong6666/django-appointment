@@ -10,9 +10,13 @@ from django import forms
 from django.contrib import admin
 
 from .models import (
-    Appointment, AppointmentRequest, AppointmentRescheduleHistory, Config, DayOff, EmailVerificationCode,
+    Appointment, AppointmentRequest, AppointmentRescheduleHistory, CapacityState, Config, DayOff, EmailVerificationCode,
     PasswordResetToken, Service, StaffMember, WorkingHours
 )
+
+admin.site.site_header = '预约系统后台'
+admin.site.site_title = '预约系统后台'
+admin.site.index_title = '管理入口'
 
 
 @admin.register(Service)
@@ -31,9 +35,19 @@ class AppointmentRequestAdmin(admin.ModelAdmin):
 
 @admin.register(Appointment)
 class AppointmentAdmin(admin.ModelAdmin):
-    list_display = ('client', 'appointment_request', 'created_at', 'updated_at',)
+    list_display = ('client', 'appointment_request', 'status', 'entered_at', 'left_at', 'created_at', 'updated_at',)
     search_fields = ('appointment_request__service__name',)
-    list_filter = ('client', 'appointment_request__service',)
+    list_filter = ('client', 'appointment_request__service', 'status',)
+
+
+@admin.register(CapacityState)
+class CapacityStateAdmin(admin.ModelAdmin):
+    list_display = ('live_current_count', 'max_capacity', 'current_count', 'updated_at',)
+    readonly_fields = ('live_current_count', 'current_count', 'updated_at',)
+
+    @admin.display(description='实时在场人数')
+    def live_current_count(self, obj):
+        return Appointment.objects.filter(status=Appointment.Status.ENTERED).count()
 
 
 @admin.register(EmailVerificationCode)

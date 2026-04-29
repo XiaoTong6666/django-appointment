@@ -15,6 +15,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
 from django.core.exceptions import FieldDoesNotExist
+from django.db import IntegrityError
 from django.urls import reverse
 from django.utils import timezone
 
@@ -117,11 +118,23 @@ def create_and_save_appointment(ar, client_data: dict, appointment_data: dict, r
     :param request: The request object.
     :return: The newly created appointment.
     """
+    existing_appointment = Appointment.objects.filter(appointment_request=ar).first()
+    if existing_appointment:
+        logger.info(f"Appointment request {ar.id} already has appointment {existing_appointment.id}; reusing it.")
+        return existing_appointment
+
     user = get_user_by_email(client_data['email'])
-    appointment = Appointment.objects.create(
-            client=user, appointment_request=ar,
-            **appointment_data
-    )
+    try:
+        appointment = Appointment.objects.create(
+                client=user, appointment_request=ar,
+                **appointment_data
+        )
+    except IntegrityError:
+        existing_appointment = Appointment.objects.filter(appointment_request=ar).first()
+        if existing_appointment:
+            logger.info(f"Appointment request {ar.id} was created concurrently; reusing appointment {existing_appointment.id}.")
+            return existing_appointment
+        raise
     appointment.save()
     logger.info(f"New appointment created: {appointment.to_dict()}")
     if appointment.want_reminder:
@@ -348,7 +361,8 @@ def create_payment_info_and_get_url(appointment):
     return payment_url
 
 
-def exclude_booked_slots(appointments, slots, slot_duration=None, service_duration=None, gap_time=None):
+def exclude_booked_slots(appointments, slots, slot_duration=None, service_duration=None, gap_time=None,
+                         max_concurrent=1):
     """Exclude the booked slots from the given list of slots.
 
     :param appointments: The appointments to exclude.
@@ -360,6 +374,7 @@ def exclude_booked_slots(appointments, slots, slot_duration=None, service_durati
     :param gap_time: Required rest time in minutes between appointments. Applied on both sides: a slot is
         unavailable if it ends within gap_time minutes before an appointment starts, or if it starts
         within gap_time minutes after an appointment ends.
+    :param max_concurrent: How many overlapping appointments are allowed for the same slot.
     :return: The slots with the booked slots excluded.
     """
     if service_duration is not None:
@@ -371,14 +386,15 @@ def exclude_booked_slots(appointments, slots, slot_duration=None, service_durati
     available_slots = []
     for slot in slots:
         slot_end = slot + check_duration
-        is_available = True
+        overlapping_count = 0
         for appointment in appointments:
             appointment_start_time = appointment.get_start_time()
             appointment_end_time = appointment.get_end_time()
             if appointment_start_time < slot_end + gap_delta and slot < appointment_end_time + gap_delta:
-                is_available = False
-                break
-        if is_available:
+                overlapping_count += 1
+                if overlapping_count >= max_concurrent:
+                    break
+        if overlapping_count < max_concurrent:
             available_slots.append(slot)
     return available_slots
 
@@ -508,22 +524,25 @@ def get_appointment_slot_duration():
     return APPOINTMENT_SLOT_DURATION
 
 
-def get_appointments_for_date_and_time(date, start_time, end_time, staff_member):
+def get_appointments_for_date_and_time(date, start_time, end_time, staff_member=None):
     """Returns all appointments that overlap with the specified date and time range.
 
     :param date: The date to filter appointments on.
     :param start_time: The starting time to filter appointments on.
     :param end_time: The ending time to filter appointments on.
-    :param staff_member: The staff member to filter appointments on.
+    :param staff_member: Optional staff member to filter appointments on.
 
     :return: QuerySet, all appointments that overlap with the specified date and time range
     """
-    return Appointment.objects.filter(
+    appointments = Appointment.objects.filter(
             appointment_request__date=date,
             appointment_request__start_time__lte=end_time,
             appointment_request__end_time__gte=start_time,
-            appointment_request__staff_member=staff_member
+            status__in=(Appointment.Status.BOOKED, Appointment.Status.ENTERED),
     )
+    if staff_member is not None:
+        appointments = appointments.filter(appointment_request__staff_member=staff_member)
+    return appointments
 
 
 def get_config():
@@ -570,7 +589,7 @@ def get_staff_member_appointment_list(staff_member: StaffMember) -> list:
 def get_weekday_num_from_date(date: datetime.date = None) -> int:
     """Get the number of the weekday from the given date."""
     if date is None:
-        date = datetime.date.today()
+        date = timezone.localdate()
     return get_weekday_num(date.strftime("%A"))
 
 

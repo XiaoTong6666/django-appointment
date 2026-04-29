@@ -51,7 +51,7 @@ class ReschedulingForm(forms.ModelForm):
 
 
 class AppointmentForm(forms.ModelForm):
-    phone = SplitPhoneNumberField()
+    phone = SplitPhoneNumberField(region='CN')
 
     class Meta:
         model = Appointment
@@ -61,7 +61,7 @@ class AppointmentForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields['phone'].widget.attrs.update(
                 {
-                    'placeholder': _('1234567890')
+                    'placeholder': '13800138000'
                 })
         self.fields['additional_info'].widget.attrs.update(
                 {
@@ -72,26 +72,26 @@ class AppointmentForm(forms.ModelForm):
                 {
                     'rows': 2,
                     'class': 'form-control',
-                    'placeholder': _('1234 Main St, City, State, Zip Code'),
+                    'placeholder': '北京市朝阳区',
                     'required': 'true'
                 })
         self.fields['additional_info'].widget.attrs.update(
                 {
                     'class': 'form-control',
-                    'placeholder': _('I would like to be contacted by phone.')
+                    'placeholder': '如有需要，请电话联系我。'
                 })
 
 
 class ClientDataForm(forms.Form):
-    name = forms.CharField(max_length=50, widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': _('John Doe')}))
-    email = forms.EmailField(widget=forms.EmailInput(attrs={'class': 'form-control', 'placeholder': _('john.doe@example.com')}))
+    name = forms.CharField(max_length=50, widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': '张三'}))
+    email = forms.EmailField(widget=forms.EmailInput(attrs={'class': 'form-control', 'placeholder': '10001@qq.com'}))
 
 
 class PersonalInformationForm(forms.Form):
     # first_name, last_name, email
-    first_name = forms.CharField(max_length=50, widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': _('John')}))
-    last_name = forms.CharField(max_length=50, widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': _('Doe')}))
-    email = forms.EmailField(widget=forms.EmailInput(attrs={'class': 'form-control', 'placeholder': _('john.doe@example.com')}))
+    first_name = forms.CharField(max_length=50, widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': '三'}))
+    last_name = forms.CharField(max_length=50, widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': '张'}))
+    email = forms.EmailField(widget=forms.EmailInput(attrs={'class': 'form-control', 'placeholder': '10001@qq.com'}))
 
     def __init__(self, *args, **kwargs):
         self.user = kwargs.pop('user', None)  # pop the user from the kwargs

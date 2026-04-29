@@ -8,6 +8,7 @@ Since: 1.0.0
 
 from datetime import date, timedelta
 
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth.forms import SetPasswordForm
@@ -46,7 +47,7 @@ from .email_sender.email_sender import has_required_email_settings
 from .messages_ import passwd_error, passwd_set_successfully
 from .services import get_appointments_and_slots, get_available_slots_for_staff
 from .settings import (APPOINTMENT_PAYMENT_URL, APPOINTMENT_THANK_YOU_URL)
-from .utils.date_time import DATE_FORMATS, convert_str_to_date
+from .utils.date_time import DATE_FORMATS, convert_str_to_date, format_time_with_chinese_period
 from .utils.error_codes import ErrorCode
 from .utils.json_context import get_generic_context_with_extra, json_response
 from .utils.template_helpers import get_custom_template
@@ -107,15 +108,15 @@ def get_available_slots_ajax(request):
     available_slots = get_available_slots_for_staff(selected_date, sm, weekday_num, service=service)
 
     # Check if the selected_date is today and filter out past slots
-    if selected_date == date.today():
-        current_time = timezone.now().time()
+    if selected_date == timezone.localdate():
+        current_time = timezone.localtime().time()
         available_slots = [slot for slot in available_slots if slot.time() > current_time]
 
-    custom_data['available_slots'] = [slot.strftime('%I:%M %p') for slot in available_slots]
+    custom_data['available_slots'] = [format_time_with_chinese_period(slot) for slot in available_slots]
     if len(available_slots) == 0:
         custom_data['error'] = True
         custom_data['date_iso'] = selected_date.isoformat()
-        message = _('No availability')
+        message = '暂无可预约时间'
         return json_response(message=message, custom_data=custom_data, success=False, error_code=ErrorCode.INVALID_DATE)
     custom_data['error'] = False
     custom_data['date_iso'] = selected_date.isoformat()
@@ -140,11 +141,11 @@ def get_next_available_date_ajax(request, service_id):
 
         # Fetch the days off for the staff
         days_off = DayOff.objects.filter(staff_member=staff_member).filter(
-                Q(start_date__lte=date.today(), end_date__gte=date.today()) |
-                Q(start_date__gte=date.today())
+                Q(start_date__lte=timezone.localdate(), end_date__gte=timezone.localdate()) |
+                Q(start_date__gte=timezone.localdate())
         )
 
-        current_date = date.today()
+        current_date = timezone.localdate()
         next_available_date = None
         day_offset = 0
 
@@ -213,12 +214,12 @@ def appointment_request(request, service_id=None, staff_member_id=None):
         # If only one staff member for a service, choose them by default and fetch their slots.
         if all_staff_members.count() == 1:
             staff_member = all_staff_members.first()
-            x, available_slots = get_appointments_and_slots(date.today(), service)
+            x, available_slots = get_appointments_and_slots(timezone.localdate(), service)
 
     # If a specific staff member is selected, fetch their slots.
     if staff_member_id:
         staff_member = get_object_or_404(StaffMember, pk=staff_member_id)
-        y, available_slots = get_appointments_and_slots(date.today(), service)
+        y, available_slots = get_appointments_and_slots(timezone.localdate(), service)
 
     page_title = f"{service.name} - {get_website_name()}"
     page_description = _("Book an appointment for {s} at {wn}.").format(s=service.name, wn=get_website_name())
@@ -232,7 +233,7 @@ def appointment_request(request, service_id=None, staff_member_id=None):
     #  file.
     current_lang = translation.get_language()
     format_string = DATE_FORMATS.get(current_lang, "D, F j, Y")
-    date_chosen = date_format(date.today(), format_string, use_l10n=True)
+    date_chosen = date_format(timezone.localdate(), format_string, use_l10n=True)
     extra_context = {
         'service': service,
         'staff_member': staff_member,
@@ -356,8 +357,8 @@ def appointment_client_information(request, appointment_request_id, id_request):
                 return handle_existing_email(request, client_data, appointment_data, appointment_request_id, id_request)
 
             logger.info(f"Creating a new user: {client_data}")
-            _ = create_new_user(client_data)
-            messages.success(request, _("An account was created for you."))
+            create_new_user(client_data)
+            messages.success(request, _("已为你创建账号。"))
 
             # Create a new appointment
             response = create_appointment(request, ar, client_data, appointment_data)
@@ -391,10 +392,10 @@ def verify_user_and_login(request, user, code):
     if user and EmailVerificationCode.objects.filter(user=user, code=code).exists():
         logger.info(f"Email verified successfully for user {user}")
         login(request, user)
-        messages.success(request, _("Email verified successfully."))
+        messages.success(request, "邮箱验证成功。")
         return True
     else:
-        messages.error(request, _("Invalid verification code."))
+        messages.error(request, "验证码无效。")
         return False
 
 
@@ -413,19 +414,32 @@ def enter_verification_code(request, appointment_request_id, id_request):
 
         if verify_user_and_login(request, user, code):
             appointment_request_object = AppointmentRequest.objects.get(pk=appointment_request_id)
-            appointment_data = get_appointment_data_from_session(request)
+            try:
+                appointment_data = get_appointment_data_from_session(request)
+            except ValueError as exc:
+                messages.error(request, str(exc))
+                return redirect('appointment:appointment_client_information', appointment_request_id=appointment_request_id,
+                                id_request=id_request)
             response = create_appointment(request=request, appointment_request_obj=appointment_request_object,
                                           client_data={'email': email}, appointment_data=appointment_data)
             return response
         else:
-            messages.error(request, _("Invalid verification code."))
+            messages.error(request, "验证码无效。")
 
     # base_template = request.session.get('BASE_TEMPLATE', '')
     # if base_template == '':
     #     base_template = APPOINTMENT_BASE_TEMPLATE
+    debug_verification_code = None
+    if settings.DEBUG or getattr(settings, 'APPOINTMENT_WEB_VERIFICATION_ONLY', True):
+        email = request.session.get('email')
+        user = get_user_by_email(email) if email else None
+        code_obj = EmailVerificationCode.objects.filter(user=user).order_by('-created_at').first() if user else None
+        debug_verification_code = code_obj.code if code_obj else None
+
     extra_context = {
         'appointment_request_id': appointment_request_id,
         'id_request': id_request,
+        'debug_verification_code': debug_verification_code,
     }
     context = get_generic_context_with_extra(request, extra_context, admin=False)
     verification_code_template = get_custom_template('verification_code.html',
@@ -444,16 +458,16 @@ def default_thank_you(request, appointment_id):
     ar = appointment.appointment_request
     email = appointment.client.email
     appointment_details = {
-        _('Service'): appointment.get_service_name(),
-        _('Appointment Date'): appointment.get_appointment_date(),
-        _('Appointment Time'): appointment.appointment_request.start_time,
-        _('Duration'): appointment.get_service_duration()
+        '服务': appointment.get_service_name(),
+        '预约日期': appointment.get_appointment_date(),
+        '预约时间': appointment.appointment_request.start_time,
+        '时长': appointment.get_service_duration()
     }
     account_details = {
-        _('Email address'): email,
+        '电子邮件': email,
     }
     if username_in_user_model():
-        account_details[_('Username')] = appointment.client.username
+        account_details['用户名'] = appointment.client.username
 
     # If the client already has an account, don't show the 'create password' part in the email
     if appointment.client.has_usable_password():
@@ -549,7 +563,7 @@ def prepare_reschedule_appointment(request, id_request):
         'all_staff_members': all_staff_members,
         'page_title': page_title,
         'page_description': page_description,
-        'available_slots': [slot.strftime('%I:%M %p') for slot in available_slots],
+        'available_slots': [format_time_with_chinese_period(slot) for slot in available_slots],
         'date_chosen': date_chosen,
         'locale': get_locale(),
         'timezoneTxt': get_current_timezone_name(),

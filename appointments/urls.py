@@ -16,8 +16,25 @@ Including another URLconf
 from django.conf.urls.i18n import i18n_patterns
 from django.contrib import admin
 from django.urls import include, path
+from django.views.generic import RedirectView
 
-urlpatterns = i18n_patterns(
+from appointment.views_api import (
+    capacity_status_api, enter_api, leave_api, staff_capacity_page, today_queue_api, user_capacity_page
+)
+
+urlpatterns = [
+    path("", RedirectView.as_view(url="/capacity/", permanent=False), name="home"),
+    path("zh-CN/admin/", RedirectView.as_view(url="/zh-hans/admin/", permanent=False)),
+    path("zh-CN/", RedirectView.as_view(url="/zh-hans/", permanent=False)),
+    path("capacity/", user_capacity_page, name="capacity_page"),
+    path("capacity/staff/", staff_capacity_page, name="staff_capacity_page"),
+    path("api/status/", capacity_status_api, name="capacity_status_api"),
+    path("api/queue/today/", today_queue_api, name="today_queue_api"),
+    path("api/enter/", enter_api, name="enter_api"),
+    path("api/leave/", leave_api, name="leave_api"),
+]
+
+urlpatterns += i18n_patterns(
     path("admin/", admin.site.urls),
     path('i18n/', include('django.conf.urls.i18n')),
     path("", include("appointment.urls")),

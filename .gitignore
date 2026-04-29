@@ -173,6 +173,9 @@ cython_debug/
 .DS_Store
 **/.DS_Store/**
 **/migrations/**
+!appointment/migrations/
+!appointment/migrations/__init__.py
+!appointment/migrations/*.py
 /services/
 data
 

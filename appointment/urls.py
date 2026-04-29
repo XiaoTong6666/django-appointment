@@ -21,6 +21,9 @@ from appointment.views_admin import (
     remove_staff_member, remove_superuser_staff_member, update_appt_date_time, update_appt_min_info, update_day_off,
     update_personal_info, update_working_hours, user_profile, validate_appointment_date
 )
+from appointment.views_api import (
+    capacity_status_api, enter_api, leave_api, staff_capacity_page, today_queue_api, user_capacity_page
+)
 
 app_name = 'appointment'
 
@@ -97,6 +100,13 @@ ajax_urlpatterns = [
     path('is_user_staff_admin/', is_user_staff_admin, name="is_user_staff_admin"),
 ]
 
+api_urlpatterns = [
+    path('status/', capacity_status_api, name='capacity_status_api'),
+    path('queue/today/', today_queue_api, name='today_queue_api'),
+    path('enter/', enter_api, name='enter_api'),
+    path('leave/', leave_api, name='leave_api'),
+]
+
 urlpatterns = [
     # homepage
     path('request/<int:service_id>/', appointment_request, name='appointment_request'),
@@ -113,5 +123,8 @@ urlpatterns = [
     path('thank-you/<int:appointment_id>/', default_thank_you, name='default_thank_you'),
     path('verify/<uidb64>/<str:token>/', set_passwd, name='set_passwd'),
     path('ajax/', include(ajax_urlpatterns)),
+    path('api/', include(api_urlpatterns)),
+    path('capacity/', user_capacity_page, name='user_capacity_page'),
+    path('capacity/staff/', staff_capacity_page, name='staff_capacity_page'),
     path('app-admin/', include(admin_urlpatterns)),
 ]

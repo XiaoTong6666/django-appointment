@@ -18,8 +18,10 @@ from django.utils.translation import gettext as _, gettext_lazy as _
 from appointment.forms import PersonalInformationForm, ServiceForm, StaffDaysOffForm, StaffWorkingHoursForm
 from appointment.messages_ import appt_updated_successfully
 from appointment.settings import APPOINTMENT_PAYMENT_URL
+from appointment.utils.capacity import get_max_capacity
 from appointment.utils.date_time import (
-    convert_12_hour_time_to_24_hour_time, convert_str_to_date, convert_str_to_time, get_ar_end_time)
+    convert_12_hour_time_to_24_hour_time, convert_str_to_date, convert_str_to_time,
+    format_time_with_chinese_period, get_ar_end_time)
 from appointment.utils.db_helpers import (
     Appointment, AppointmentRequest, EmailVerificationCode, Service, StaffMember, WorkingHours, calculate_slots,
     calculate_staff_slots, check_day_off_for_staff, create_and_save_appointment, create_new_user,
@@ -400,15 +402,15 @@ def get_available_slots(date, appointments):
 
     :param date: The date for which to calculate the available slot
     :param appointments: A list of Appointment objects
-    :return: A list of available time slots as strings in the format '%I:%M %p' like ['10:00 AM', '10:30 AM']
+    :return: A list of available time slots using Chinese 上午/下午 markers.
     """
 
     start_time, end_time, slot_duration, buff_time = get_times_from_config(date)
-    now = timezone.now()
+    now = timezone.localtime()
     buffer_time = now + buff_time if date == now.date() else now
     slots = calculate_slots(start_time, end_time, buffer_time, slot_duration)
-    slots = exclude_booked_slots(appointments, slots, slot_duration)
-    return [slot.strftime('%I:%M %p') for slot in slots]
+    slots = exclude_booked_slots(appointments, slots, slot_duration, max_concurrent=get_max_capacity())
+    return [format_time_with_chinese_period(slot) for slot in slots]
 
 
 def get_available_slots_for_staff(date, staff_member, day_of_week: int, service=None):
@@ -421,7 +423,7 @@ def get_available_slots_for_staff(date, staff_member, day_of_week: int, service=
         effective slot-check window (subject to Config.default_to_service_duration and
         Service.use_service_duration_as_slot), preventing overlaps for services longer than the
         configured slot step.
-    :return: A list of available time slots as strings in the format '%I:%M %p' like ['10:00 AM', '10:30 AM']
+    :return: A list of available time slots using Chinese 上午/下午 markers.
     """
     # Check if the provided date is a day off for the staff member
     days_off_exist = check_day_off_for_staff(staff_member=staff_member, date=date)
@@ -452,9 +454,10 @@ def get_available_slots_for_staff(date, staff_member, day_of_week: int, service=
     slots = calculate_staff_slots(date, staff_member)
     slots = exclude_pending_reschedules(slots, staff_member, date)
     appointments = get_appointments_for_date_and_time(date, working_hours_dict['start_time'],
-                                                      working_hours_dict['end_time'], staff_member)
+                                                      working_hours_dict['end_time'])
     return exclude_booked_slots(appointments, slots, slot_duration,
-                                service_duration=service_duration, gap_time=gap_time or None)
+                                service_duration=service_duration, gap_time=gap_time or None,
+                                max_concurrent=get_max_capacity())
 
 
 def get_finish_button_text(service) -> str:

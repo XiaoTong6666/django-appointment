@@ -1044,6 +1044,22 @@ class AppointmentClientInformationTest(BaseTest):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, 'appointment/appointment_client_information.html')
 
+    def test_post_request_creates_new_user_without_shadowing_translation(self):
+        """A valid submission should not shadow gettext with the created user."""
+        self.service1.price = 0
+        self.service1.save()
+        response = self.client.post(self.url, {
+            'name': '张三',
+            'email': '10000@qq.com',
+            'phone_0': 'CN',
+            'phone_1': '18307741995',
+            'address': '广西梧州',
+            'additional_info': '',
+            'payment_type': 'full',
+        })
+
+        self.assertEqual(response.status_code, 302)
+
     def test_already_submitted_session(self):
         """Test the view when the appointment has already been submitted."""
         session = self.client.session
@@ -1053,6 +1069,18 @@ class AppointmentClientInformationTest(BaseTest):
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, 'error_pages/304_already_submitted.html')
+
+    def test_verification_code_missing_session_data_redirects_to_client_info(self):
+        user = self.users['client1']
+        code = EmailVerificationCode.generate_code(user=user)
+        session = self.client.session
+        session['email'] = user.email
+        session.save()
+        url = reverse('appointment:enter_verification_code', args=[self.ar.pk, self.ar.id_request])
+
+        response = self.client.post(url, {'code': code})
+
+        self.assertRedirects(response, self.url)
 
 
 class PrepareRescheduleAppointmentViewTests(BaseTest):

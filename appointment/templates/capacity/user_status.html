@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>实时人数</title>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+  <style>
+    body { margin: 0; font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #0f172a; color: #e2e8f0; }
+    .page { min-height: 100vh; display: grid; place-items: center; padding: 24px; }
+    .card { width: min(520px, 100%); background: #111827; border: 1px solid #334155; border-radius: 24px; padding: 32px; box-shadow: 0 24px 80px rgba(0, 0, 0, .35); }
+    .label { color: #94a3b8; text-transform: uppercase; letter-spacing: .12em; font-size: 12px; }
+    .count { font-size: clamp(64px, 16vw, 120px); line-height: 1; margin: 18px 0 8px; font-weight: 800; }
+    .available { font-size: 20px; color: #cbd5e1; }
+    .bar { height: 14px; background: #1e293b; border-radius: 999px; overflow: hidden; margin: 28px 0; }
+    .fill { height: 100%; background: linear-gradient(90deg, #22c55e, #f59e0b, #ef4444); transition: width .25s ease; }
+    .status { display: inline-flex; padding: 8px 12px; border-radius: 999px; background: #064e3b; color: #bbf7d0; }
+    .status.full { background: #7f1d1d; color: #fecaca; }
+    .muted { color: #94a3b8; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <main id="app" class="page">
+    <section class="card">
+      <div class="label">实时在场人数</div>
+      <div class="count">[[ current ]] / [[ max ]]</div>
+      <div class="available">剩余名额：[[ available ]]</div>
+      <div class="bar"><div class="fill" :style="{ width: percent + '%' }"></div></div>
+      <div :class="['status', { full: available <= 0 }]">[[ available > 0 ? '当前可入场' : '当前已满员' ]]</div>
+      <p class="muted">每 3 秒自动刷新。</p>
+    </section>
+  </main>
+  <script>
+    const { createApp } = Vue;
+
+    createApp({
+      delimiters: ['[[', ']]'],
+      data() {
+        return { current: 0, max: 50, available: 50 };
+      },
+      computed: {
+        percent() {
+          return this.max ? Math.min(100, Math.round((this.current / this.max) * 100)) : 0;
+        }
+      },
+      async mounted() {
+        await this.refresh();
+        setInterval(this.refresh, 3000);
+      },
+      methods: {
+        async refresh() {
+          const response = await fetch('/api/status/');
+          const data = await response.json();
+          this.current = data.current;
+          this.max = data.max;
+          this.available = data.available;
+        }
+      }
+    }).mount('#app');
+  </script>
+</body>
+</html>

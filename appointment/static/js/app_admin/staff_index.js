@@ -214,7 +214,7 @@ function displayEventList(events, date) {
 
     events.forEach(function (event) {
         eventListHtml += `<div class="event-list-item-appt" data-event-id="${event.id}">${event.service_name}</div>`;
-        eventListHtml += `<div><i class="fa fa-clock-o" aria-hidden="true"></i> ${moment(event.start_time).format('h:mm a')} - ${moment(event.end_time).format('h:mm a')}</div>`;
+        eventListHtml += `<div><i class="fa fa-clock-o" aria-hidden="true"></i> ${moment(event.start_time).format('A h:mm').replace('AM', '上午').replace('PM', '下午')} - ${moment(event.end_time).format('A h:mm').replace('AM', '上午').replace('PM', '下午')}</div>`;
         eventListHtml += '<hr>';
     });
 

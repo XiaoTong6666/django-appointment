@@ -1,6 +1,7 @@
 {% extends BASE_TEMPLATE %}
 {% load i18n %}
 {% load static %}
+{% load time_extras %}
 {% block customCSS %}
     <link rel="stylesheet" type="text/css" href="{% static 'css/app_admin/btn.css' %}"/>
     <link rel="stylesheet" type="text/css" href="{% static 'css/app_admin/user_profile.css' %}"/>
@@ -173,8 +174,8 @@
                         {% for working_hour in working_hours %}
                             <tr>
                                 <td>{{ working_hour.get_day_of_week_str }}</td>
-                                <td>{{ working_hour.start_time|time:"g:i A" }}</td>
-                                <td>{{ working_hour.end_time|time:"g:i A" }}</td>
+                                <td>{{ working_hour.start_time|chinese_ampm }}</td>
+                                <td>{{ working_hour.end_time|chinese_ampm }}</td>
                                 <td>
                                     <div class="buttons-container">
                                         {% if superuser %}

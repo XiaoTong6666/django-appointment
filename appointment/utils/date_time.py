@@ -32,11 +32,13 @@ def convert_12_hour_time_to_24_hour_time(time_to_convert) -> str:
     if isinstance(time_to_convert, (datetime.datetime, datetime.time)):
         return time_to_convert.strftime('%H:%M:%S')
     elif isinstance(time_to_convert, str):
-        try:
-            time_str = time_to_convert.strip().upper()
-            return datetime.datetime.strptime(time_str, '%I:%M %p').strftime('%H:%M:%S')
-        except ValueError:
-            raise ValueError(f"Invalid 12-hour time format: {time_to_convert}")
+        time_str = normalize_period_text(time_to_convert)
+        for fmt in ['%I:%M %p', '%p %I:%M', '%H:%M:%S', '%H:%M']:
+            try:
+                return datetime.datetime.strptime(time_str, fmt).strftime('%H:%M:%S')
+            except ValueError:
+                pass
+        raise ValueError(f"Invalid time format: {time_to_convert}")
     else:
         raise ValueError(f"Unsupported data type for time conversion: {type(time_to_convert)}")
 
@@ -45,25 +47,51 @@ def convert_24_hour_time_to_12_hour_time(time_to_convert) -> str:
     """Convert a 24-hour time to a 12-hour time.
 
     :param time_to_convert: The time to convert in 'HH:MM' or 'HH:MM:SS' format, or a datetime.time object.
-    :return: The converted time in 'HH:MM AM/PM' or 'HH:MM:SS AM/PM' format.
+    :return: The converted time in Chinese 12-hour format, e.g. '上午 10:00' or '下午 01:00'.
     :raises ValueError: If the input time is not in the correct format or is invalid.
     """
     # Handle datetime.time object directly
     if isinstance(time_to_convert, datetime.time):
-        return time_to_convert.strftime('%I:%M %p')
+        return format_time_with_chinese_period(time_to_convert)
 
     # Handle string input
-    for source_fmt, dest_fmt in zip(['%H:%M:%S', '%H:%M'], ['%I:%M:%S %p', '%I:%M %p']):
+    for source_fmt in ['%H:%M:%S', '%H:%M']:
         try:
             # Parse the input string according to the 24-hour format
             parsed_time = datetime.datetime.strptime(time_to_convert, source_fmt)
             # Convert and return the time in 12-hour format
-            return parsed_time.strftime(dest_fmt)
+            include_seconds = source_fmt == '%H:%M:%S'
+            return format_time_with_chinese_period(parsed_time.time(), include_seconds=include_seconds)
         except ValueError:
             continue  # Try the next format if there was a parsing error
 
     # If input was not datetime.time and did not match string formats, raise an error
     raise ValueError(f"Invalid 24-hour time format: {time_to_convert}")
+
+
+def format_time_with_chinese_period(time_to_format, include_seconds=False) -> str:
+    """Format a time value with Chinese 上午/下午 markers."""
+    if isinstance(time_to_format, datetime.datetime):
+        time_to_format = timezone.localtime(time_to_format).time() if timezone.is_aware(time_to_format) else time_to_format.time()
+    if not isinstance(time_to_format, datetime.time):
+        raise ValueError(f"Unsupported data type for time formatting: {type(time_to_format)}")
+
+    period = '上午' if time_to_format.hour < 12 else '下午'
+    hour = time_to_format.hour % 12 or 12
+    fmt = f"{hour:02d}:{time_to_format.minute:02d}"
+    if include_seconds:
+        fmt = f"{fmt}:{time_to_format.second:02d}"
+    return f"{period} {fmt}"
+
+
+def normalize_period_text(time_str: str) -> str:
+    """Normalize Chinese time periods to AM/PM so existing parsers still accept submitted values."""
+    return (
+        time_str.strip()
+        .replace('上午', 'AM')
+        .replace('下午', 'PM')
+        .upper()
+    )
 
 
 def convert_minutes_in_human_readable_format(minutes: float) -> str:
@@ -73,31 +101,31 @@ def convert_minutes_in_human_readable_format(minutes: float) -> str:
     :return: The converted minutes in a human-readable format.
     """
     if minutes == 0:
-        return _("Not set.")
+        return '未设置'
     if minutes < 0:
-        raise ValueError("Minutes cannot be negative.")
+        raise ValueError("分钟数不能为负数。")
     days, remaining_minutes = divmod(int(minutes), 1440)
     hours, minutes = divmod(int(remaining_minutes), 60)
 
     parts = []
     if days:
-        days_display = ngettext("%(count)d day", "%(count)d days", days) % {'count': days}
+        days_display = f"{days} 天"
         parts.append(days_display)
 
     if hours:
-        hours_display = ngettext("%(count)d hour", "%(count)d hours", hours) % {'count': hours}
+        hours_display = f"{hours} 小时"
         parts.append(hours_display)
 
     if minutes:
-        minutes_display = ngettext("%(count)d minute", "%(count)d minutes", minutes) % {'count': minutes}
+        minutes_display = f"{minutes} 分钟"
         parts.append(minutes_display)
 
     if len(parts) == 1:
         return parts[0]
     elif len(parts) == 2:
-        return _("{first_part} and {second_part}").format(first_part=parts[0], second_part=parts[1])
+        return f"{parts[0]} {parts[1]}"
     elif len(parts) == 3:
-        return _("{days}, {hours} and {minutes}").format(days=parts[0], hours=parts[1], minutes=parts[2])
+        return f"{parts[0]} {parts[1]} {parts[2]}"
 
 
 def convert_str_to_date(date_str: str) -> datetime.date:
@@ -126,11 +154,11 @@ def convert_str_to_time(time_str: str) -> datetime.time:
     :param time_str: A string representation of time.
     :return: A Python `time` object.
     """
-    formats = ["%I:%M %p", "%H:%M:%S", "%H:%M"]
+    formats = ["%I:%M %p", "%p %I:%M", "%H:%M:%S", "%H:%M"]
 
     for fmt in formats:
         try:
-            return datetime.datetime.strptime(time_str.strip().upper(), fmt).time()
+            return datetime.datetime.strptime(normalize_period_text(time_str), fmt).time()
         except ValueError:
             pass
 
@@ -192,7 +220,7 @@ def get_current_year() -> int:
 
     :return: The current year
     """
-    return datetime.datetime.now().year
+    return timezone.localdate().year
 
 
 def get_weekday_num(weekday: str) -> int:

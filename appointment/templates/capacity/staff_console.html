@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>店家入场控制台</title>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+  <style>
+    body { margin: 0; font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f8fafc; color: #0f172a; }
+    .page { max-width: 1120px; margin: 0 auto; padding: 28px 18px 48px; }
+    .top { display: flex; gap: 16px; justify-content: space-between; align-items: stretch; flex-wrap: wrap; margin-bottom: 24px; }
+    .panel { background: white; border: 1px solid #e2e8f0; border-radius: 20px; padding: 22px; box-shadow: 0 18px 50px rgba(15, 23, 42, .08); }
+    .counter { min-width: 260px; }
+    .counter strong { display: block; font-size: 54px; line-height: 1; margin-top: 10px; }
+    .muted { color: #64748b; }
+    .grid { display: grid; gap: 14px; }
+    .row { display: grid; grid-template-columns: minmax(260px, 1.4fr) 1fr auto; gap: 14px; align-items: center; }
+    .customer { display: grid; gap: 5px; }
+    .badge { display: inline-flex; align-items: center; padding: 5px 10px; border-radius: 999px; font-size: 13px; background: #e2e8f0; color: #334155; }
+    .badge.entered { background: #dcfce7; color: #166534; }
+    .badge.finished { background: #e0e7ff; color: #3730a3; }
+    .badge.cancelled { background: #fee2e2; color: #991b1b; }
+    button { border: 0; border-radius: 12px; padding: 10px 14px; font-weight: 700; cursor: pointer; }
+    button:disabled { opacity: .45; cursor: not-allowed; }
+    .enter { background: #16a34a; color: white; }
+    .leave { background: #2563eb; color: white; }
+    .actions { display: flex; gap: 8px; justify-content: flex-end; }
+    .notice { margin-bottom: 14px; padding: 12px 14px; border-radius: 14px; background: #eff6ff; color: #1d4ed8; }
+    @media (max-width: 760px) { .row { grid-template-columns: 1fr; } .actions { justify-content: flex-start; } }
+  </style>
+</head>
+<body>
+  <main id="app" class="page">
+    {% csrf_token %}
+    <section class="top">
+      <div class="panel counter">
+        <div class="muted">当前在场人数</div>
+        <strong>[[ status.current ]] / [[ status.max ]]</strong>
+        <div class="muted">剩余名额：[[ status.available ]]</div>
+      </div>
+      <div class="panel" style="flex: 1;">
+        <h1 style="margin: 0 0 8px;">今日入场控制台</h1>
+        <p class="muted" style="margin: 0;">店家在门口使用本页面处理入场和离场，页面每 3 秒自动刷新。</p>
+      </div>
+    </section>
+
+    <div v-if="message" class="notice">[[ message ]]</div>
+
+    <section class="panel grid">
+      <div v-if="appointments.length === 0" class="muted">今天暂无预约。</div>
+      <article v-for="appointment in appointments" :key="appointment.id" class="row">
+        <div class="customer">
+          <strong>客户：[[ appointment.client_name || '未填写姓名' ]]</strong>
+          <div class="muted">电话：[[ appointment.phone || '未填写电话' ]]</div>
+          <div class="muted">邮箱：[[ appointment.client_email || '未填写邮箱' ]]</div>
+          <div class="muted" v-if="appointment.address">地址：[[ appointment.address ]]</div>
+          <div class="muted">预约：[[ appointment.service ]] · [[ appointment.start_time ]]-[[ appointment.end_time ]]</div>
+          <div class="muted" v-if="appointment.additional_info">备注：[[ appointment.additional_info ]]</div>
+        </div>
+        <div><span :class="['badge', appointment.status]">[[ appointment.status_text ]]</span></div>
+        <div class="actions">
+          <button class="enter" :disabled="appointment.status !== 'booked'" @click="enter(appointment.id)">同意入场</button>
+          <button class="leave" :disabled="appointment.status !== 'entered'" @click="leave(appointment.id)">确认离场</button>
+        </div>
+      </article>
+    </section>
+  </main>
+  <script>
+    const { createApp } = Vue;
+
+    function getCookie(name) {
+      const value = `; ${document.cookie}`;
+      const parts = value.split(`; ${name}=`);
+      if (parts.length === 2) return parts.pop().split(';').shift();
+      return '';
+    }
+
+    const statusLabels = {
+      booked: '已预约',
+      entered: '已入场',
+      finished: '已离场',
+      cancelled: '已取消'
+    };
+
+    createApp({
+      delimiters: ['[[', ']]'],
+      data() {
+        return { status: { current: 0, max: 50, available: 50 }, appointments: [], message: '' };
+      },
+      async mounted() {
+        await this.refreshAll();
+        setInterval(this.refreshAll, 3000);
+      },
+      methods: {
+        async refreshAll() {
+          await Promise.all([this.refreshStatus(), this.refreshQueue()]);
+        },
+        async refreshStatus() {
+          const response = await fetch('/api/status/');
+          this.status = await response.json();
+        },
+        async refreshQueue() {
+          const response = await fetch('/api/queue/today/');
+          const data = await response.json();
+          this.appointments = (data.appointments || []).map((appointment) => ({
+            ...appointment,
+            status_text: appointment.status_text || statusLabels[appointment.status] || appointment.status
+          }));
+        },
+        async postAction(url, appointmentId) {
+          const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+            body: JSON.stringify({ appointment_id: appointmentId })
+          });
+          const data = await response.json();
+          this.message = data.message;
+          await this.refreshAll();
+        },
+        enter(appointmentId) {
+          this.postAction('/api/enter/', appointmentId);
+        },
+        leave(appointmentId) {
+          this.postAction('/api/leave/', appointmentId);
+        }
+      }
+    }).mount('#app');
+  </script>
+</body>
+</html>
